@@ -16,6 +16,8 @@ Drag the time bar or press play to watch 1830 to 2030. The buttons at the top ri
 
 `pipeline/export_web.py` writes the scene's data into `web/public/data/`: Terrarium-encoded heightmaps, a reservoir-outline mask found from flat water surfaces, the Ashokan before/after terrain, the old-map texture, and `scene.json`.
 
+`pipeline/osm_water.py` adds what comes from OpenStreetMap (raw extracts in `data/osm/`): `water_mask.png`, the region's natural lakes, ponds, rivers and other towns' reservoirs (NYC's own are left to the timeline), and `routes.json`, the real aqueduct and tunnel routes split into cut-and-cover runs (drawn on the ground) and rock tunnels (drawn 120 m underground with shafts at the portals, and dotted where seen through the terrain). Data © OpenStreetMap contributors, ODbL.
+
 ![Ashokan filling, 1913](docs/scene_ashokan_1913.jpg)
 
 ## Status: phase 1 (data spike)
@@ -31,7 +33,7 @@ Drag the time bar or press play to watch 1830 to 2030. The buttons at the top ri
 ### Known gaps
 
 - Years flagged `approx` in `timeline.json` are inferred and need checking against primary sources.
-- Aqueduct routes are schematic. OpenStreetMap (Overpass) could not be reached from the build environment.
+- Aqueduct routes come from OpenStreetMap except City Water Tunnels 1-3, the Delaware bypass and High Bridge, which are still schematic. Tunnel depths are a fixed 120 m, not surveyed.
 - Spillway elevations are missing for the smaller Croton reservoirs.
 - Modern terrain shows each reservoir as a flat surface. Pre-dam reconstruction (historic USGS topo maps) is the next step for Ashokan.
 

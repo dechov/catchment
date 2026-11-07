@@ -17,7 +17,11 @@ interface Scene {
   reservoirs: Reservoir[]; dams: Dam[]; aqueducts: Aqueduct[]; events: Event[];
 }
 
+interface Run { kind: "tunnel" | "cutcover" | "bridge"; coords: number[][] }
+interface Routes { attribution: string; routes: Record<string, { runs: Run[] }> }
+
 const D = "./data/";
+const TUNNEL_DEPTH_M = 120;
 const T0 = 1830, T1 = 2030;
 const PLAY_YEARS_PER_SEC = 4;
 const MAX_RES = 32;
@@ -26,13 +30,15 @@ async function main() {
   const data: Scene = await (await fetch(D + "scene.json")).json();
   const low = new URLSearchParams(location.search).get("q") === "low" || innerWidth < 700;
   const frame = new Frame(data.region.bounds);
-  const [region, ashNow, ashPre, ashMaskImg, ashTopoImg, resIdImg] = await Promise.all([
+  const [region, ashNow, ashPre, ashMaskImg, ashTopoImg, resIdImg, waterImg, routes] = await Promise.all([
     HeightGrid.load(D + "region_height.png", data.region.bounds),
     HeightGrid.load(D + "ashokan_now.png", data.ashokan.bounds),
     HeightGrid.load(D + "ashokan_pre.png", data.ashokan.bounds),
     loadImage(D + "ashokan_mask.png"),
     loadImage(D + "ashokan_topo.jpg"),
     loadImage(D + "region_reservoirs.png"),
+    loadImage(D + "water_mask.png"),
+    fetch(D + "routes.json").then((r) => r.json() as Promise<Routes>),
   ]);
 
   // ---- renderer, camera, controls ------------------------------------------------------
@@ -67,7 +73,7 @@ async function main() {
   const fillU = { value: new Float32Array(MAX_RES) };
   const regionMat = new THREE.ShaderMaterial({
     uniforms: {
-      resId: { value: tex(resIdImg, true) }, fill: fillU,
+      resId: { value: tex(resIdImg, true) }, fill: fillU, water: { value: tex(waterImg) },
       cutout: { value: new THREE.Vector4(ax0, az0, ax1, az1) },
       fogColor: { value: new THREE.Color(0xb9c8d4) }, fogNear: { value: 250 }, fogFar: { value: 650 },
     },
@@ -79,13 +85,17 @@ async function main() {
         gl_Position = projectionMatrix * mv;
       }`,
     fragmentShader: /* glsl */ `
-      uniform sampler2D resId; uniform float fill[${MAX_RES}]; uniform vec4 cutout;
+      uniform sampler2D resId; uniform float fill[${MAX_RES}]; uniform vec4 cutout; uniform sampler2D water;
       uniform vec3 fogColor; uniform float fogNear; uniform float fogFar;
       varying vec3 vN; varying vec2 vUv; varying float vE; varying vec3 vW; varying float vDepth;
       ${shadeGLSL}
       void main() {
         if (vW.x > cutout.x && vW.x < cutout.z && vW.z > cutout.y && vW.z < cutout.w) discard;
         vec3 c = landColor(vE);
+        // natural lakes, ponds, rivers and other towns' reservoirs (OpenStreetMap): a softer,
+        // greyer blue than the city's reservoirs so those still stand out
+        vec2 w = texture2D(water, vUv).rg;
+        c = mix(c, LAKE, smoothstep(0.25, 0.6, max(w.r, w.g)));
         if (vE < 0.25) c = WATER * 0.85;               // sea, harbour, tidal Hudson
         int id = int(texture2D(resId, vUv).r * 255.0 + 0.5);
         if (id > 0) {
@@ -173,28 +183,71 @@ async function main() {
   const sun = new THREE.DirectionalLight(0xffffff, 1.5); sun.position.set(-1, 1.4, -0.6); scene.add(sun);
 
   // ---- aqueducts and tunnels -----------------------------------------------------------
-  const lineMats: LineMaterial[] = [];
-  const lines = data.aqueducts.map((a) => {
-    const pts: number[] = [];
-    for (let i = 0; i < a.coords.length - 1; i++) {
-      const [lo0, la0] = a.coords[i], [lo1, la1] = a.coords[i + 1];
-      const n = Math.max(2, Math.ceil(Math.hypot(lo1 - lo0, la1 - la0) / 0.004));
-      for (let k = 0; k < n; k++) {
-        const lo = lo0 + ((lo1 - lo0) * k) / n, la = la0 + ((la1 - la0) * k) / n;
-        const [x, z] = frame.xz(lo, la);
-        pts.push(x, yOf(region.at(lo, la) + 150), z);
-      }
+  // Real routes from OpenStreetMap where mapped (routes.json), else the schematic line.
+  // Cut-and-cover aqueducts lie just under the ground, so they are drawn on it. Tunnels run
+  // through rock: they dive from portals at each end to TUNNEL_DEPTH_M below the surface, are
+  // hidden by the terrain like anything else, and show through it as a faint "x-ray" line.
+  const regionAt = ([lo, la]: number[]) => region.at(lo, la);
+  /** densify a run to ~400 m steps and give it heights */
+  function runPoints(r: Run): number[] {
+    const ll: number[][] = [];
+    for (let i = 0; i < r.coords.length - 1; i++) {
+      const [lo0, la0] = r.coords[i], [lo1, la1] = r.coords[i + 1];
+      const n = Math.max(1, Math.ceil(Math.hypot((lo1 - lo0) * 0.75, la1 - la0) / 0.0036));
+      for (let k = 0; k < n; k++) ll.push([lo0 + ((lo1 - lo0) * k) / n, la0 + ((la1 - la0) * k) / n]);
     }
-    const [lo, la] = a.coords[a.coords.length - 1];
-    const [x, z] = frame.xz(lo, la); pts.push(x, yOf(region.at(lo, la) + 150), z);
-    const geo = new LineGeometry(); geo.setPositions(pts);
-    const mat = new LineMaterial({ color: SYSTEM_COLORS[a.system] ?? "#fff", linewidth: 3.5, dashed: true,
-      dashSize: 1.2, gapSize: 0.6, transparent: true });
-    mat.resolution.set(innerWidth, innerHeight);
-    lineMats.push(mat);
-    const line = new Line2(geo, mat); line.computeLineDistances();
-    scene.add(line);
-    return { a, line, mat };
+    ll.push(r.coords[r.coords.length - 1]);
+    const ground = ll.map(regionAt);
+    const g0 = ground[0], g1 = ground[ground.length - 1];
+    const out: number[] = [];
+    ll.forEach(([lo, la], i) => {
+      const [x, z] = frame.xz(lo, la);
+      let e: number;
+      if (r.kind === "tunnel") {
+        // a gently falling grade line between the portals, kept well under hills and valleys
+        const grade = g0 + ((g1 - g0) * i) / Math.max(1, ll.length - 1);
+        e = Math.min(grade, ground[i]) - TUNNEL_DEPTH_M;
+      } else e = ground[i] + (r.kind === "bridge" ? 40 : 12);
+      out.push(x, yOf(e), z);
+    });
+    return out;
+  }
+  // lines on the ground are lifted a little more the further away the camera is, so the
+  // depth buffer does not lose them in the terrain at whole-region scale
+  const surfaceLines = new THREE.Group(); scene.add(surfaceLines);
+  const lineMats: LineMaterial[] = [], ghostMats: LineMaterial[] = [];
+  const mkMat = (ghost: boolean, width: number) => {
+    const m = new LineMaterial({ linewidth: width, dashed: true, dashSize: 1.2, gapSize: 0.6, transparent: true });
+    if (ghost) { m.depthTest = false; m.depthWrite = false; ghostMats.push(m); }
+    m.resolution.set(innerWidth, innerHeight); lineMats.push(m); return m;
+  };
+  const lines = data.aqueducts.map((a) => {
+    const runs: Run[] = routes.routes[a.id]?.runs
+      ?? [{ kind: a.kind === "bridge" ? "bridge" : a.kind === "tunnel" ? "tunnel" : "cutcover", coords: a.coords }];
+    const solid = mkMat(false, 3.5), ghost = mkMat(true, 2.5);
+    const objs: Line2[] = [];
+    let dist = 0;   // dash distance carried across runs so the flow reads as one aqueduct
+    for (const r of runs) {
+      const pts = runPoints(r);
+      const add = (p: number[], mat: LineMaterial, order = 0) => {
+        const geo = new LineGeometry(); geo.setPositions(p);
+        const l = new Line2(geo, mat); l.computeLineDistances(); l.renderOrder = order;
+        const d = l.geometry.attributes.instanceDistanceStart.array as Float32Array;
+        const e = l.geometry.attributes.instanceDistanceEnd.array as Float32Array;
+        for (let i = 0; i < d.length; i++) { d[i] += dist; e[i] += dist; }
+        (r.kind === "tunnel" ? scene : surfaceLines).add(l); objs.push(l); return e[e.length - 1];
+      };
+      if (r.kind === "tunnel") {
+        add(pts, solid); dist = add(pts, ghost, 5);
+        // shafts up to the portals at either end
+        for (const k of [0, pts.length - 3]) {
+          const [x, y, z] = pts.slice(k, k + 3);
+          const top = yOf(regionAt(r.coords[k ? r.coords.length - 1 : 0])) + 0.01;
+          if (top - y > 0.02) { add([x, y, z, x, top, z], solid); add([x, y, z, x, top, z], ghost, 5); }
+        }
+      } else dist = add(pts, solid);
+    }
+    return { a, objs, mats: [solid, ghost] };
   });
 
   // ---- labels --------------------------------------------------------------------------
@@ -267,12 +320,15 @@ async function main() {
       const p = damProgressFromYear(d, t);
       m.visible = p > 0; m.scale.y = Math.max(0.001, p);
     }
-    for (const { a, line, mat } of lines) {
+    for (const { a, objs, mats } of lines) {
       const s = lineState(a, t);
-      line.visible = s !== "hidden";
-      if (s === "building") { mat.color.set("#f2b33d"); mat.dashSize = 0.5; mat.gapSize = 0.5; mat.opacity = 1; }
-      else if (s === "service") { mat.color.set(SYSTEM_COLORS[a.system] ?? "#fff"); mat.dashSize = 1.6; mat.gapSize = 0.35; mat.opacity = 1; }
-      else if (s === "retired") { mat.color.set("#7d858c"); mat.dashSize = 100; mat.gapSize = 0; mat.opacity = 0.55; }
+      for (const o of objs) o.visible = s !== "hidden";
+      mats.forEach((mat, gi) => {
+        const k = gi ? 0.85 : 1;   // the x-ray pass through the ground is fainter
+        if (s === "building") { mat.color.set("#f2b33d"); mat.dashSize = 0.5; mat.gapSize = 0.5; mat.opacity = k; }
+        else if (s === "service") { mat.color.set(SYSTEM_COLORS[a.system] ?? "#fff"); mat.dashSize = 1.6; mat.gapSize = 0.35; mat.opacity = k; }
+        else if (s === "retired") { mat.color.set("#7d858c"); mat.dashSize = 100; mat.gapSize = 0; mat.opacity = 0.55 * k; }
+      });
     }
     for (const { r, div } of resLabels) {
       const f2 = fillFraction(r, t), building = damProgress(r, t) > 0 && f2 === 0;
@@ -305,7 +361,10 @@ async function main() {
       if (year >= T1) { playing = false; playBtn.textContent = "▶"; }
     }
     applyYear(year);
-    for (const { mat } of lines) mat.dashOffset -= dt * 1.2;   // water flowing downstream
+    for (const m of lineMats) m.dashOffset -= dt * 1.2;   // water flowing downstream
+    const camD = camera.position.distanceTo(controls.target);
+    surfaceLines.position.y = camD * 0.0012;
+    for (const m of ghostMats) { m.dashSize = camD * 0.006; m.gapSize = camD * 0.006; }
     if (flight) {
       flight.t = Math.min(1, flight.t + dt / 1.6);
       const e = flight.t < 0.5 ? 2 * flight.t * flight.t : 1 - Math.pow(-2 * flight.t + 2, 2) / 2;
@@ -324,7 +383,7 @@ async function main() {
   });
   // for automated screenshots: window.catchment.setYear(1915)
   requestAnimationFrame(() => requestAnimationFrame(() => ((window as any).__ready = true)));
-  (window as any).catchment = { setYear: (y: number) => { year = y; slider.value = String(y); }, go };
+  (window as any).catchment = { setYear: (y: number) => { year = y; slider.value = String(y); }, go, camera, controls, frame };
 }
 
 const EXAG_STR = "3.0";

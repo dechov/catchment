@@ -61,4 +61,5 @@ export const shadeGLSL = /* glsl */ `
     return base * (0.38 + 0.78 * d);
   }
   const vec3 WATER = vec3(0.16, 0.36, 0.55);
+  const vec3 LAKE = vec3(0.33, 0.47, 0.58);
 `;
