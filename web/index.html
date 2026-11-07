@@ -16,7 +16,9 @@
     <button data-view="region" class="on">Whole system</button>
     <button data-view="ashokan">Ashokan</button>
     <button data-view="croton">Croton</button>
+    <button data-view="delaware">Delaware</button>
     <button data-view="city">City</button>
+    <button id="underground" title="See through the ground to the tunnels">Underground</button>
   </nav>
   <aside id="captions" aria-live="polite"></aside>
   <aside id="legend">
@@ -25,6 +27,7 @@
     <div><i class="sw delaware"></i>Delaware</div>
     <div><i class="sw modern"></i>Modern</div>
     <div><i class="sw dash"></i>Under construction</div>
+    <div><i class="sw xray"></i>Tunnel (below ground)</div>
   </aside>
   <footer id="timebar">
     <button id="play" aria-label="Play">▶</button>
@@ -35,6 +38,7 @@
       <input id="slider" type="range" min="1830" max="2030" step="0.1" value="1830" aria-label="Year" />
     </div>
   </footer>
+  <div id="attrib">Old maps: USGS historical topographic sheets, 1894–1946 · Terrain: Mapzen/AWS Terrain Tiles · Routes, lakes, rivers © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors</div>
   <div id="loading">Loading terrain…</div>
   <script type="module" src="./src/main.ts"></script>
 </body>

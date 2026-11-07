@@ -25,9 +25,11 @@ def load(name):
     return m, m["elev_min_m"] + v / 65535 * (m["elev_max_m"] - m["elev_min_m"])
 
 def terrarium(e, path):
-    x = np.clip(e, -1000, 9000) + 32768
+    # heights are kept to 0.25 m (B channel in steps of 64), which roughly halves the PNG size
+    x = np.round((np.clip(e, -1000, 9000) + 32768) * 4) / 4
     r = np.floor(x / 256); g = np.floor(x - r * 256); b = np.round((x - r * 256 - g) * 256)
     over = b > 255; g[over] += 1; b[over] = 0
+    over = g > 255; r[over] += 1; g[over] = 0
     Image.fromarray(np.stack([r, g, b], -1).astype(np.uint8)).save(path, optimize=True)
 
 def downsample(e, w):
@@ -47,7 +49,7 @@ reservoirs = [f for f in timeline["features"] if f["kind"] == "reservoir"]
 
 # --- region -----------------------------------------------------------------------------
 rm, re_ = load("region")
-RW = 1536
+RW = 2048
 reg = downsample(re_, RW)
 sc = RW / rm["width"]
 terrarium(reg, f"{out}/region_height.png")
@@ -90,35 +92,82 @@ for i, f in enumerate(reservoirs):
     full_ids[area & (full_ids == 0)] = i + 1
     res_out.append(dict(f, id=i + 1, water_level_m=round(level, 1), area_km2=round(area.sum() * rm["meters_per_pixel_approx"] ** 2 / 1e6, 2)))
 ids = np.asarray(Image.fromarray(ndimage.maximum_filter(full_ids, size=3)).resize(reg.shape[::-1], Image.NEAREST))
+# natural lakes and ponds from OpenStreetMap: id 255 = always water. Polygons that mostly overlap
+# a city reservoir are skipped so those keep their fill schedule.
+from PIL import ImageDraw
+SS = 3
+lake_img = Image.new("L", (reg.shape[1] * SS, reg.shape[0] * SS), 0)
+dl = ImageDraw.Draw(lake_img)
+res_big = np.asarray(Image.fromarray(ids).resize(lake_img.size, Image.NEAREST)) > 0
+n_lakes = 0
+for f in json.load(open(f"{ROOT}/data/osm_lakes.geojson"))["features"]:
+    ring = [lonlat_to_px(rm, lo, la, sc * SS) for lo, la in f["geometry"]["coordinates"][0]]
+    xs, ys = [p[0] for p in ring], [p[1] for p in ring]
+    x0, x1, y0, y1 = int(max(0, min(xs))), int(min(lake_img.size[0] - 1, max(xs))), int(max(0, min(ys))), int(min(lake_img.size[1] - 1, max(ys)))
+    if x1 <= x0 or y1 <= y0:
+        continue
+    if res_big[y0:y1 + 1, x0:x1 + 1].mean() > 0.3:
+        continue
+    dl.polygon(ring, fill=255); n_lakes += 1
+lakes = np.asarray(lake_img.resize(reg.shape[::-1], Image.BOX)) > 100
+ids = ids.copy(); ids[lakes & (ids == 0)] = 255
+print("natural water polygons:", n_lakes)
 Image.fromarray(np.stack([ids, np.zeros_like(ids), np.zeros_like(ids)], -1)).save(f"{out}/region_reservoirs.png")
 
-# --- Ashokan detail ---------------------------------------------------------------------
-am, now = load("ashokan"); _, pre = load("ashokan_predam")
-AW = 1536
-terrarium(downsample(now, AW), f"{out}/ashokan_now.png")
-terrarium(downsample(pre, AW), f"{out}/ashokan_pre.png")
-mask = Image.open(f"{tdir}/ashokan_reservoir_mask.png").resize((AW, round(am["height"] * AW / am["width"])), Image.BILINEAR)
-mask.save(f"{out}/ashokan_mask.png")
-topo = Image.open(f"{tdir}/ashokan_topo_predam.png").convert("RGB")
-topo.thumbnail((2048, 2048)); topo.save(f"{out}/ashokan_topo.jpg", quality=80)
-pm = json.load(open(f"{tdir}/ashokan_predam_meta.json"))
+# rivers (OpenStreetMap), simplified, as [lon, lat] polylines
+riv = json.load(open(f"{ROOT}/data/osm_rivers.geojson"))["features"][0]["geometry"]["coordinates"]
+json.dump([[[round(x, 4), round(y, 4)] for x, y in line] for line in riv], open(f"{out}/rivers.json", "w"), separators=(",", ":"))
+
+# --- valley details: before/after terrain + old maps -------------------------------------
+VALLEYS = ["ashokan", "new-croton", "kensico", "schoharie", "rondout", "neversink", "pepacton", "cannonsville"]
+MESH_MAX, TOPO_MAX = 1280, 3072
+valleys_out = []
+for vid in VALLEYS:
+    if not os.path.exists(f"{tdir}/{vid}_predam_meta.json"):
+        print("skip valley", vid); continue
+    vm, now = load(vid); _, pre = load(f"{vid}_predam")
+    vw = min(MESH_MAX, round(vm["width"] * min(1, MESH_MAX / max(vm["width"], vm["height"]))))
+    pm = json.load(open(f"{tdir}/{vid}_predam_meta.json"))
+    now_s, pre_s = downsample(now, vw), downsample(pre, vw)
+    terrarium(pre_s, f"{out}/{vid}_pre.png")
+    vh = round(vm["height"] * vw / vm["width"])
+    mask_img = Image.open(f"{tdir}/{vid}_reservoir_mask.png").resize((vw, vh), Image.BILINEAR)
+    mask_img.save(f"{out}/{vid}_mask.png")
+    # the dam: modern ground standing above the water inside the reservoir footprint, in whole
+    # metres over the pre-dam ground (8-bit, almost all zero, so the file is tiny)
+    dam_h = np.where((np.asarray(mask_img) > 127) & (now_s > pm["water_level_m"] + 1), np.clip(now_s - pre_s, 0, 255), 0)
+    Image.fromarray(np.round(dam_h).astype(np.uint8)).save(f"{out}/{vid}_dam.png", optimize=True)
+    topo = Image.open(f"{tdir}/{vid}_topo_predam.png").convert("RGB")
+    topo.thumbnail((TOPO_MAX, TOPO_MAX)); topo.save(f"{out}/{vid}_topo.jpg", quality=74, optimize=True)
+    rname = {"ashokan": "Ashokan", "new-croton": "New Croton", "kensico": "Kensico", "schoharie": "Schoharie",
+             "rondout": "Rondout", "neversink": "Neversink", "pepacton": "Pepacton", "cannonsville": "Cannonsville"}[vid]
+    rid = next(r["id"] for r in res_out if r["name"] == f"{rname} Reservoir")
+    maps = pm.get("old_maps") or [{"title": t, "year": int(t[-4:])} for t in ("USGS 1:62500 Rosendale, NY 1903", "USGS 1:62500 Slide Mountain, NY 1905")]
+    valleys_out.append(dict(id=vid, bounds=bounds(vm), water_level_m=pm["water_level_m"], reservoir_id=rid,
+                            maps=[dict(title=m["title"], year=m["year"]) for m in maps],
+                            synthetic=vid != "ashokan"))
+    print("valley", vid, vw, "x", vh)
 
 # --- scene.json -------------------------------------------------------------------------
 dams = json.load(open(f"{ROOT}/data/dams.geojson"))["features"]
 aq = json.load(open(f"{ROOT}/data/aqueducts.geojson"))["features"]
+osm_routes = {f["properties"]["id"]: [[[round(x, 5), round(y, 5)] for x, y in c] for c in f["geometry"]["coordinates"] if len(c) > 1]
+              for f in json.load(open(f"{ROOT}/data/osm_aqueducts.geojson"))["features"] if f["properties"]["length_km"] > 1}
 scene = dict(
     region=dict(bounds=bounds(rm), size=list(reg.shape[::-1])),
-    ashokan=dict(bounds=bounds(am), water_level_m=pm["water_level_m"]),
+    valleys=valleys_out,
     reservoirs=res_out,
     dams=[dict(name=d["properties"]["name"], lon=d["geometry"]["coordinates"][0], lat=d["geometry"]["coordinates"][1],
                year=d["properties"]["year_completed"], height_ft=d["properties"]["height_ft"],
                length_ft=d["properties"]["length_ft"]) for d in dams if d["properties"]["year_completed"]],
-    aqueducts=[dict(f["properties"], coords=f["geometry"]["coordinates"],
+    # routes: OpenStreetMap chains where mapped, else the schematic waypoints
+    aqueducts=[dict(f["properties"],
+                    chains=osm_routes.get(f["properties"]["id"]) or [f["geometry"]["coordinates"]],
+                    route="osm" if f["properties"]["id"] in osm_routes else "schematic",
                     **{k: next(t for t in timeline["features"] if t["id"] == f["properties"]["id"])[k]
                        for k in ("construction_start", "in_service", "retired")}) for f in aq],
     events=timeline["events"],
 )
-scene["ashokan"]["reservoir_id"] = next(r["id"] for r in res_out if r["name"] == "Ashokan Reservoir")
 json.dump(scene, open(f"{out}/scene.json", "w"), separators=(",", ":"))
 for r in res_out:
     print(f'{r["id"]:2d} {r["name"]:32s} level {r["water_level_m"]:7.1f}  km2 {r["area_km2"]}')
