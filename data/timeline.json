@@ -1,0 +1,1258 @@
+{
+ "generated_by": "pipeline/build_timeline.py",
+ "accessed": "2026-11-07",
+ "notes": "'approx' marks years inferred rather than read from the cited source; verify before presenting.",
+ "features": [
+  {
+   "id": "croton-distributing",
+   "kind": "reservoir",
+   "name": "Croton Distributing Reservoir",
+   "system": "croton",
+   "lon": -73.9825,
+   "lat": 40.7533,
+   "spillway_elev_m": null,
+   "construction_start": 1837,
+   "fill_start": 1842,
+   "fill_end": null,
+   "in_service": 1842,
+   "retired": 1890,
+   "dam_nid_id": null,
+   "dam_height_ft": null,
+   "dam_length_ft": null,
+   "approx": [],
+   "source": "https://en.wikipedia.org/wiki/Croton_Distributing_Reservoir",
+   "note": null
+  },
+  {
+   "id": "central-park-lower",
+   "kind": "reservoir",
+   "name": "Yorkville Receiving Reservoir",
+   "system": "croton",
+   "lon": -73.969,
+   "lat": 40.7795,
+   "spillway_elev_m": null,
+   "construction_start": 1837,
+   "fill_start": 1842,
+   "fill_end": null,
+   "in_service": 1842,
+   "retired": 1930,
+   "dam_nid_id": null,
+   "dam_height_ft": null,
+   "dam_length_ft": null,
+   "approx": [],
+   "source": "https://en.wikipedia.org/wiki/Jacqueline_Kennedy_Onassis_Reservoir",
+   "note": null
+  },
+  {
+   "id": "central-park-upper",
+   "kind": "reservoir",
+   "name": "Central Park Reservoir",
+   "system": "croton",
+   "lon": -73.9625,
+   "lat": 40.7855,
+   "spillway_elev_m": null,
+   "construction_start": 1858,
+   "fill_start": 1860,
+   "fill_end": null,
+   "in_service": 1862,
+   "retired": 1993,
+   "dam_nid_id": null,
+   "dam_height_ft": null,
+   "dam_length_ft": null,
+   "approx": [],
+   "source": "https://en.wikipedia.org/wiki/Jacqueline_Kennedy_Onassis_Reservoir",
+   "note": null
+  },
+  {
+   "id": "boyds-corner",
+   "kind": "reservoir",
+   "name": "Boyds Corner Reservoir",
+   "system": "croton",
+   "lon": -73.755,
+   "lat": 41.451,
+   "spillway_elev_m": null,
+   "construction_start": null,
+   "fill_start": null,
+   "fill_end": null,
+   "in_service": 1872,
+   "retired": null,
+   "dam_nid_id": "NY00066",
+   "dam_height_ft": 78.0,
+   "dam_length_ft": 670.0,
+   "approx": [
+    "in_service"
+   ],
+   "source": "NID year completed",
+   "note": null
+  },
+  {
+   "id": "middle-branch",
+   "kind": "reservoir",
+   "name": "Middle Branch Reservoir",
+   "system": "croton",
+   "lon": -73.644,
+   "lat": 41.411,
+   "spillway_elev_m": null,
+   "construction_start": null,
+   "fill_start": null,
+   "fill_end": null,
+   "in_service": 1878,
+   "retired": null,
+   "dam_nid_id": "NY00034",
+   "dam_height_ft": 95.0,
+   "dam_length_ft": 615.0,
+   "approx": [
+    "in_service"
+   ],
+   "source": "NID year completed",
+   "note": null
+  },
+  {
+   "id": "west-branch",
+   "kind": "reservoir",
+   "name": "West Branch Reservoir",
+   "system": "croton",
+   "lon": -73.7,
+   "lat": 41.425,
+   "spillway_elev_m": 149.4,
+   "construction_start": null,
+   "fill_start": null,
+   "fill_end": null,
+   "in_service": 1895,
+   "retired": null,
+   "dam_nid_id": "NY00029",
+   "dam_height_ft": 85.0,
+   "dam_length_ft": 1795.0,
+   "approx": [],
+   "source": "https://en.wikipedia.org/wiki/West_Branch_Reservoir",
+   "note": null
+  },
+  {
+   "id": "titicus",
+   "kind": "reservoir",
+   "name": "Titicus Reservoir",
+   "system": "croton",
+   "lon": -73.615,
+   "lat": 41.325,
+   "spillway_elev_m": null,
+   "construction_start": null,
+   "fill_start": null,
+   "fill_end": null,
+   "in_service": 1895,
+   "retired": null,
+   "dam_nid_id": "NY00050",
+   "dam_height_ft": 109.0,
+   "dam_length_ft": 1520.0,
+   "approx": [
+    "in_service"
+   ],
+   "source": "NID year completed",
+   "note": null
+  },
+  {
+   "id": "amawalk",
+   "kind": "reservoir",
+   "name": "Amawalk Reservoir",
+   "system": "croton",
+   "lon": -73.752,
+   "lat": 41.288,
+   "spillway_elev_m": null,
+   "construction_start": null,
+   "fill_start": null,
+   "fill_end": null,
+   "in_service": 1897,
+   "retired": null,
+   "dam_nid_id": "NY00045",
+   "dam_height_ft": 85.0,
+   "dam_length_ft": 1270.0,
+   "approx": [
+    "in_service"
+   ],
+   "source": "NID year completed",
+   "note": null
+  },
+  {
+   "id": "jerome-park",
+   "kind": "reservoir",
+   "name": "Jerome Park Reservoir",
+   "system": "croton",
+   "lon": -73.8956,
+   "lat": 40.8778,
+   "spillway_elev_m": null,
+   "construction_start": 1895,
+   "fill_start": 1905,
+   "fill_end": null,
+   "in_service": 1906,
+   "retired": null,
+   "dam_nid_id": null,
+   "dam_height_ft": null,
+   "dam_length_ft": null,
+   "approx": [
+    "construction_start",
+    "fill_start"
+   ],
+   "source": "https://en.wikipedia.org/wiki/Jerome_Park_Reservoir",
+   "note": null
+  },
+  {
+   "id": "new-croton",
+   "kind": "reservoir",
+   "name": "New Croton Reservoir",
+   "system": "croton",
+   "lon": -73.8398,
+   "lat": 41.233,
+   "spillway_elev_m": 59.1,
+   "construction_start": 1892,
+   "fill_start": 1905,
+   "fill_end": null,
+   "in_service": 1906,
+   "retired": null,
+   "dam_nid_id": "NY00046",
+   "dam_height_ft": 174.0,
+   "dam_length_ft": 1218.0,
+   "approx": [
+    "fill_start"
+   ],
+   "source": "https://en.wikipedia.org/wiki/New_Croton_Reservoir",
+   "note": null
+  },
+  {
+   "id": "cross-river",
+   "kind": "reservoir",
+   "name": "Cross River Reservoir",
+   "system": "croton",
+   "lon": -73.64,
+   "lat": 41.27,
+   "spillway_elev_m": null,
+   "construction_start": null,
+   "fill_start": null,
+   "fill_end": null,
+   "in_service": 1908,
+   "retired": null,
+   "dam_nid_id": "NY00038",
+   "dam_height_ft": 126.0,
+   "dam_length_ft": 1060.0,
+   "approx": [
+    "in_service"
+   ],
+   "source": "NID year completed",
+   "note": null
+  },
+  {
+   "id": "croton-falls",
+   "kind": "reservoir",
+   "name": "Croton Falls Reservoir",
+   "system": "croton",
+   "lon": -73.66,
+   "lat": 41.39,
+   "spillway_elev_m": null,
+   "construction_start": null,
+   "fill_start": null,
+   "fill_end": null,
+   "in_service": 1910,
+   "retired": null,
+   "dam_nid_id": "NY00039",
+   "dam_height_ft": 113.0,
+   "dam_length_ft": 1070.0,
+   "approx": [
+    "in_service"
+   ],
+   "source": "NID year completed",
+   "note": null
+  },
+  {
+   "id": "ashokan",
+   "kind": "reservoir",
+   "name": "Ashokan Reservoir",
+   "system": "catskill",
+   "lon": -74.217,
+   "lat": 41.95,
+   "spillway_elev_m": 178.3,
+   "construction_start": 1907,
+   "fill_start": 1912,
+   "fill_end": 1914,
+   "in_service": 1915,
+   "retired": null,
+   "dam_nid_id": "NY00041",
+   "dam_height_ft": 213.0,
+   "dam_length_ft": 4650.0,
+   "approx": [],
+   "source": "https://en.wikipedia.org/wiki/Ashokan_Reservoir",
+   "note": null
+  },
+  {
+   "id": "kensico",
+   "kind": "reservoir",
+   "name": "Kensico Reservoir",
+   "system": "catskill",
+   "lon": -73.7639,
+   "lat": 41.0861,
+   "spillway_elev_m": 108,
+   "construction_start": 1913,
+   "fill_start": 1915,
+   "fill_end": null,
+   "in_service": 1917,
+   "retired": null,
+   "dam_nid_id": "NY00051",
+   "dam_height_ft": 168.0,
+   "dam_length_ft": 1843.0,
+   "approx": [
+    "fill_start"
+   ],
+   "source": "https://en.wikipedia.org/wiki/Kensico_Reservoir",
+   "note": "old Kensico dam (1885) demolished from 1911"
+  },
+  {
+   "id": "hillview",
+   "kind": "reservoir",
+   "name": "Hillview Reservoir",
+   "system": "catskill",
+   "lon": -73.8692,
+   "lat": 40.9122,
+   "spillway_elev_m": 90,
+   "construction_start": 1909,
+   "fill_start": 1915,
+   "fill_end": null,
+   "in_service": 1915,
+   "retired": null,
+   "dam_nid_id": null,
+   "dam_height_ft": null,
+   "dam_length_ft": null,
+   "approx": [
+    "fill_start"
+   ],
+   "source": "https://en.wikipedia.org/wiki/Hillview_Reservoir",
+   "note": null
+  },
+  {
+   "id": "schoharie",
+   "kind": "reservoir",
+   "name": "Schoharie Reservoir",
+   "system": "catskill",
+   "lon": -74.4398,
+   "lat": 42.3712,
+   "spillway_elev_m": 343,
+   "construction_start": 1919,
+   "fill_start": 1924,
+   "fill_end": 1924,
+   "in_service": 1926,
+   "retired": null,
+   "dam_nid_id": "NY00176",
+   "dam_height_ft": 183.0,
+   "dam_length_ft": 2273.0,
+   "approx": [
+    "construction_start",
+    "fill_start"
+   ],
+   "source": "https://en.wikipedia.org/wiki/Schoharie_Reservoir",
+   "note": null
+  },
+  {
+   "id": "rondout",
+   "kind": "reservoir",
+   "name": "Rondout Reservoir",
+   "system": "delaware",
+   "lon": -74.471,
+   "lat": 41.8226,
+   "spillway_elev_m": 255,
+   "construction_start": 1937,
+   "fill_start": 1950,
+   "fill_end": null,
+   "in_service": 1951,
+   "retired": null,
+   "dam_nid_id": "NY00074",
+   "dam_height_ft": 195.0,
+   "dam_length_ft": 2400.0,
+   "approx": [
+    "fill_start"
+   ],
+   "source": "https://en.wikipedia.org/wiki/Rondout_Reservoir",
+   "note": null
+  },
+  {
+   "id": "neversink",
+   "kind": "reservoir",
+   "name": "Neversink Reservoir",
+   "system": "delaware",
+   "lon": -74.6389,
+   "lat": 41.8258,
+   "spillway_elev_m": 439,
+   "construction_start": 1941,
+   "fill_start": 1953,
+   "fill_end": null,
+   "in_service": 1954,
+   "retired": null,
+   "dam_nid_id": "NY00348",
+   "dam_height_ft": 190.0,
+   "dam_length_ft": 3000.0,
+   "approx": [
+    "construction_start",
+    "in_service"
+   ],
+   "source": "https://en.wikipedia.org/wiki/Neversink_Reservoir",
+   "note": null
+  },
+  {
+   "id": "pepacton",
+   "kind": "reservoir",
+   "name": "Pepacton Reservoir",
+   "system": "delaware",
+   "lon": -74.8222,
+   "lat": 42.0889,
+   "spillway_elev_m": 390,
+   "construction_start": 1947,
+   "fill_start": 1954,
+   "fill_end": 1955,
+   "in_service": 1955,
+   "retired": null,
+   "dam_nid_id": "NY00342",
+   "dam_height_ft": 204.0,
+   "dam_length_ft": 2400.0,
+   "approx": [
+    "construction_start"
+   ],
+   "source": "https://en.wikipedia.org/wiki/Pepacton_Reservoir",
+   "note": null
+  },
+  {
+   "id": "cannonsville",
+   "kind": "reservoir",
+   "name": "Cannonsville Reservoir",
+   "system": "delaware",
+   "lon": -75.2726,
+   "lat": 42.1114,
+   "spillway_elev_m": 349.9,
+   "construction_start": 1955,
+   "fill_start": 1963,
+   "fill_end": 1967,
+   "in_service": 1964,
+   "retired": null,
+   "dam_nid_id": "NY00542",
+   "dam_height_ft": 175.0,
+   "dam_length_ft": 2800.0,
+   "approx": [
+    "construction_start",
+    "fill_start"
+   ],
+   "source": "https://en.wikipedia.org/wiki/Cannonsville_Reservoir",
+   "note": null
+  },
+  {
+   "id": "old-croton-aqueduct",
+   "kind": "aqueduct",
+   "name": "Old Croton Aqueduct",
+   "system": "croton",
+   "construction_start": 1837,
+   "in_service": 1842,
+   "retired": 1955,
+   "source": "https://en.wikipedia.org/wiki/Croton_Aqueduct",
+   "geometry": "data/aqueducts.geojson"
+  },
+  {
+   "id": "high-bridge",
+   "kind": "bridge",
+   "name": "High Bridge (aqueduct bridge over the Harlem River)",
+   "system": "croton",
+   "construction_start": 1839,
+   "in_service": 1848,
+   "retired": 1949,
+   "source": "https://en.wikipedia.org/wiki/High_Bridge_(New_York_City)",
+   "geometry": "data/aqueducts.geojson"
+  },
+  {
+   "id": "new-croton-aqueduct",
+   "kind": "tunnel",
+   "name": "New Croton Aqueduct",
+   "system": "croton",
+   "construction_start": 1885,
+   "in_service": 1890,
+   "retired": null,
+   "source": "https://en.wikipedia.org/wiki/New_Croton_Aqueduct",
+   "geometry": "data/aqueducts.geojson"
+  },
+  {
+   "id": "catskill-aqueduct",
+   "kind": "aqueduct",
+   "name": "Catskill Aqueduct",
+   "system": "catskill",
+   "construction_start": 1907,
+   "in_service": 1916,
+   "retired": null,
+   "source": "https://en.wikipedia.org/wiki/Catskill_Aqueduct",
+   "geometry": "data/aqueducts.geojson"
+  },
+  {
+   "id": "shandaken-tunnel",
+   "kind": "tunnel",
+   "name": "Shandaken Tunnel",
+   "system": "catskill",
+   "construction_start": 1916,
+   "in_service": 1924,
+   "retired": null,
+   "source": "https://en.wikipedia.org/wiki/Shandaken_Tunnel",
+   "geometry": "data/aqueducts.geojson"
+  },
+  {
+   "id": "city-tunnel-1",
+   "kind": "tunnel",
+   "name": "City Water Tunnel No. 1",
+   "system": "catskill",
+   "construction_start": 1911,
+   "in_service": 1917,
+   "retired": null,
+   "source": "https://en.wikipedia.org/wiki/New_York_City_Water_Tunnel_No._3",
+   "geometry": "data/aqueducts.geojson"
+  },
+  {
+   "id": "city-tunnel-2",
+   "kind": "tunnel",
+   "name": "City Water Tunnel No. 2",
+   "system": "catskill",
+   "construction_start": 1929,
+   "in_service": 1936,
+   "retired": null,
+   "source": "https://en.wikipedia.org/wiki/New_York_City_Water_Tunnel_No._3",
+   "geometry": "data/aqueducts.geojson"
+  },
+  {
+   "id": "delaware-aqueduct",
+   "kind": "tunnel",
+   "name": "Delaware Aqueduct",
+   "system": "delaware",
+   "construction_start": 1939,
+   "in_service": 1944,
+   "retired": null,
+   "source": "https://en.wikipedia.org/wiki/Delaware_Aqueduct",
+   "geometry": "data/aqueducts.geojson"
+  },
+  {
+   "id": "east-delaware-tunnel",
+   "kind": "tunnel",
+   "name": "East Delaware Tunnel",
+   "system": "delaware",
+   "construction_start": 1942,
+   "in_service": 1955,
+   "retired": null,
+   "source": "https://en.wikipedia.org/wiki/Pepacton_Reservoir",
+   "geometry": "data/aqueducts.geojson"
+  },
+  {
+   "id": "west-delaware-tunnel",
+   "kind": "tunnel",
+   "name": "West Delaware Tunnel",
+   "system": "delaware",
+   "construction_start": 1955,
+   "in_service": 1964,
+   "retired": null,
+   "source": "https://en.wikipedia.org/wiki/Cannonsville_Reservoir",
+   "geometry": "data/aqueducts.geojson"
+  },
+  {
+   "id": "neversink-tunnel",
+   "kind": "tunnel",
+   "name": "Neversink Tunnel",
+   "system": "delaware",
+   "construction_start": 1941,
+   "in_service": 1954,
+   "retired": null,
+   "source": "https://en.wikipedia.org/wiki/Neversink_Reservoir",
+   "geometry": "data/aqueducts.geojson"
+  },
+  {
+   "id": "city-tunnel-3",
+   "kind": "tunnel",
+   "name": "City Water Tunnel No. 3",
+   "system": "modern",
+   "construction_start": 1970,
+   "in_service": 1998,
+   "retired": null,
+   "source": "https://en.wikipedia.org/wiki/New_York_City_Water_Tunnel_No._3",
+   "geometry": "data/aqueducts.geojson"
+  },
+  {
+   "id": "delaware-bypass",
+   "kind": "tunnel",
+   "name": "Rondout-West Branch bypass tunnel",
+   "system": "modern",
+   "construction_start": 2013,
+   "in_service": null,
+   "retired": null,
+   "source": "https://en.wikipedia.org/wiki/Delaware_Aqueduct",
+   "geometry": "data/aqueducts.geojson"
+  }
+ ],
+ "events": [
+  {
+   "year": 1799,
+   "feature": null,
+   "type": "milestone",
+   "label": "Manhattan Company begins supplying well water through wooden pipes",
+   "system": "wells",
+   "approx": true
+  },
+  {
+   "year": 1832,
+   "feature": null,
+   "type": "milestone",
+   "label": "Cholera epidemic pushes the city toward an outside water source",
+   "system": "wells",
+   "approx": true
+  },
+  {
+   "year": 1837,
+   "feature": "croton-distributing",
+   "type": "construction_start",
+   "label": "Croton Distributing Reservoir: construction begins",
+   "system": "croton",
+   "approx": false
+  },
+  {
+   "year": 1837,
+   "feature": "old-croton-aqueduct",
+   "type": "construction_start",
+   "label": "Old Croton Aqueduct: construction begins",
+   "system": "croton",
+   "approx": false
+  },
+  {
+   "year": 1837,
+   "feature": "central-park-lower",
+   "type": "construction_start",
+   "label": "Yorkville Receiving Reservoir: construction begins",
+   "system": "croton",
+   "approx": false
+  },
+  {
+   "year": 1839,
+   "feature": "high-bridge",
+   "type": "construction_start",
+   "label": "High Bridge (aqueduct bridge over the Harlem River): construction begins",
+   "system": "croton",
+   "approx": false
+  },
+  {
+   "year": 1842,
+   "feature": "croton-distributing",
+   "type": "in_service",
+   "label": "Croton Distributing Reservoir: in service",
+   "system": "croton",
+   "approx": false
+  },
+  {
+   "year": 1842,
+   "feature": "croton-distributing",
+   "type": "fill_start",
+   "label": "Croton Distributing Reservoir: starts filling",
+   "system": "croton",
+   "approx": false
+  },
+  {
+   "year": 1842,
+   "feature": null,
+   "type": "milestone",
+   "label": "Croton water reaches the city (July 4) and is celebrated on October 14",
+   "system": "croton",
+   "approx": false
+  },
+  {
+   "year": 1842,
+   "feature": "old-croton-aqueduct",
+   "type": "in_service",
+   "label": "Old Croton Aqueduct: in service",
+   "system": "croton",
+   "approx": false
+  },
+  {
+   "year": 1842,
+   "feature": "central-park-lower",
+   "type": "in_service",
+   "label": "Yorkville Receiving Reservoir: in service",
+   "system": "croton",
+   "approx": false
+  },
+  {
+   "year": 1842,
+   "feature": "central-park-lower",
+   "type": "fill_start",
+   "label": "Yorkville Receiving Reservoir: starts filling",
+   "system": "croton",
+   "approx": false
+  },
+  {
+   "year": 1848,
+   "feature": "high-bridge",
+   "type": "in_service",
+   "label": "High Bridge (aqueduct bridge over the Harlem River): in service",
+   "system": "croton",
+   "approx": false
+  },
+  {
+   "year": 1858,
+   "feature": "central-park-upper",
+   "type": "construction_start",
+   "label": "Central Park Reservoir: construction begins",
+   "system": "croton",
+   "approx": false
+  },
+  {
+   "year": 1860,
+   "feature": "central-park-upper",
+   "type": "fill_start",
+   "label": "Central Park Reservoir: starts filling",
+   "system": "croton",
+   "approx": false
+  },
+  {
+   "year": 1862,
+   "feature": "central-park-upper",
+   "type": "in_service",
+   "label": "Central Park Reservoir: in service",
+   "system": "croton",
+   "approx": false
+  },
+  {
+   "year": 1872,
+   "feature": "boyds-corner",
+   "type": "in_service",
+   "label": "Boyds Corner Reservoir: in service",
+   "system": "croton",
+   "approx": true
+  },
+  {
+   "year": 1878,
+   "feature": "middle-branch",
+   "type": "in_service",
+   "label": "Middle Branch Reservoir: in service",
+   "system": "croton",
+   "approx": true
+  },
+  {
+   "year": 1885,
+   "feature": "new-croton-aqueduct",
+   "type": "construction_start",
+   "label": "New Croton Aqueduct: construction begins",
+   "system": "croton",
+   "approx": false
+  },
+  {
+   "year": 1890,
+   "feature": "croton-distributing",
+   "type": "retired",
+   "label": "Croton Distributing Reservoir: retired",
+   "system": "croton",
+   "approx": false
+  },
+  {
+   "year": 1890,
+   "feature": "new-croton-aqueduct",
+   "type": "in_service",
+   "label": "New Croton Aqueduct: in service",
+   "system": "croton",
+   "approx": false
+  },
+  {
+   "year": 1892,
+   "feature": "new-croton",
+   "type": "construction_start",
+   "label": "New Croton Reservoir: construction begins",
+   "system": "croton",
+   "approx": false
+  },
+  {
+   "year": 1895,
+   "feature": "jerome-park",
+   "type": "construction_start",
+   "label": "Jerome Park Reservoir: construction begins",
+   "system": "croton",
+   "approx": true
+  },
+  {
+   "year": 1895,
+   "feature": "titicus",
+   "type": "in_service",
+   "label": "Titicus Reservoir: in service",
+   "system": "croton",
+   "approx": true
+  },
+  {
+   "year": 1895,
+   "feature": "west-branch",
+   "type": "in_service",
+   "label": "West Branch Reservoir: in service",
+   "system": "croton",
+   "approx": false
+  },
+  {
+   "year": 1897,
+   "feature": "amawalk",
+   "type": "in_service",
+   "label": "Amawalk Reservoir: in service",
+   "system": "croton",
+   "approx": true
+  },
+  {
+   "year": 1905,
+   "feature": "jerome-park",
+   "type": "fill_start",
+   "label": "Jerome Park Reservoir: starts filling",
+   "system": "croton",
+   "approx": true
+  },
+  {
+   "year": 1905,
+   "feature": "new-croton",
+   "type": "fill_start",
+   "label": "New Croton Reservoir: starts filling",
+   "system": "croton",
+   "approx": true
+  },
+  {
+   "year": 1905,
+   "feature": null,
+   "type": "milestone",
+   "label": "State Water Supply Act creates the Board of Water Supply",
+   "system": "catskill",
+   "approx": true
+  },
+  {
+   "year": 1906,
+   "feature": "jerome-park",
+   "type": "in_service",
+   "label": "Jerome Park Reservoir: in service",
+   "system": "croton",
+   "approx": false
+  },
+  {
+   "year": 1906,
+   "feature": "new-croton",
+   "type": "in_service",
+   "label": "New Croton Reservoir: in service",
+   "system": "croton",
+   "approx": false
+  },
+  {
+   "year": 1907,
+   "feature": "ashokan",
+   "type": "construction_start",
+   "label": "Ashokan Reservoir: construction begins",
+   "system": "catskill",
+   "approx": false
+  },
+  {
+   "year": 1907,
+   "feature": "catskill-aqueduct",
+   "type": "construction_start",
+   "label": "Catskill Aqueduct: construction begins",
+   "system": "catskill",
+   "approx": false
+  },
+  {
+   "year": 1908,
+   "feature": "cross-river",
+   "type": "in_service",
+   "label": "Cross River Reservoir: in service",
+   "system": "croton",
+   "approx": true
+  },
+  {
+   "year": 1909,
+   "feature": "hillview",
+   "type": "construction_start",
+   "label": "Hillview Reservoir: construction begins",
+   "system": "catskill",
+   "approx": false
+  },
+  {
+   "year": 1910,
+   "feature": "croton-falls",
+   "type": "in_service",
+   "label": "Croton Falls Reservoir: in service",
+   "system": "croton",
+   "approx": true
+  },
+  {
+   "year": 1911,
+   "feature": "city-tunnel-1",
+   "type": "construction_start",
+   "label": "City Water Tunnel No. 1: construction begins",
+   "system": "catskill",
+   "approx": false
+  },
+  {
+   "year": 1912,
+   "feature": "ashokan",
+   "type": "fill_start",
+   "label": "Ashokan Reservoir: starts filling",
+   "system": "catskill",
+   "approx": false
+  },
+  {
+   "year": 1913,
+   "feature": "kensico",
+   "type": "construction_start",
+   "label": "Kensico Reservoir: construction begins",
+   "system": "catskill",
+   "approx": false
+  },
+  {
+   "year": 1915,
+   "feature": "ashokan",
+   "type": "in_service",
+   "label": "Ashokan Reservoir: in service",
+   "system": "catskill",
+   "approx": false
+  },
+  {
+   "year": 1915,
+   "feature": "hillview",
+   "type": "in_service",
+   "label": "Hillview Reservoir: in service",
+   "system": "catskill",
+   "approx": false
+  },
+  {
+   "year": 1915,
+   "feature": "hillview",
+   "type": "fill_start",
+   "label": "Hillview Reservoir: starts filling",
+   "system": "catskill",
+   "approx": true
+  },
+  {
+   "year": 1915,
+   "feature": "kensico",
+   "type": "fill_start",
+   "label": "Kensico Reservoir: starts filling",
+   "system": "catskill",
+   "approx": true
+  },
+  {
+   "year": 1916,
+   "feature": "catskill-aqueduct",
+   "type": "in_service",
+   "label": "Catskill Aqueduct: in service",
+   "system": "catskill",
+   "approx": false
+  },
+  {
+   "year": 1916,
+   "feature": "shandaken-tunnel",
+   "type": "construction_start",
+   "label": "Shandaken Tunnel: construction begins",
+   "system": "catskill",
+   "approx": false
+  },
+  {
+   "year": 1917,
+   "feature": "city-tunnel-1",
+   "type": "in_service",
+   "label": "City Water Tunnel No. 1: in service",
+   "system": "catskill",
+   "approx": false
+  },
+  {
+   "year": 1917,
+   "feature": "kensico",
+   "type": "in_service",
+   "label": "Kensico Reservoir: in service",
+   "system": "catskill",
+   "approx": false
+  },
+  {
+   "year": 1919,
+   "feature": "schoharie",
+   "type": "construction_start",
+   "label": "Schoharie Reservoir: construction begins",
+   "system": "catskill",
+   "approx": true
+  },
+  {
+   "year": 1924,
+   "feature": "schoharie",
+   "type": "fill_start",
+   "label": "Schoharie Reservoir: starts filling",
+   "system": "catskill",
+   "approx": true
+  },
+  {
+   "year": 1924,
+   "feature": "shandaken-tunnel",
+   "type": "in_service",
+   "label": "Shandaken Tunnel: in service",
+   "system": "catskill",
+   "approx": false
+  },
+  {
+   "year": 1926,
+   "feature": "schoharie",
+   "type": "in_service",
+   "label": "Schoharie Reservoir: in service",
+   "system": "catskill",
+   "approx": false
+  },
+  {
+   "year": 1929,
+   "feature": "city-tunnel-2",
+   "type": "construction_start",
+   "label": "City Water Tunnel No. 2: construction begins",
+   "system": "catskill",
+   "approx": false
+  },
+  {
+   "year": 1930,
+   "feature": "central-park-lower",
+   "type": "retired",
+   "label": "Yorkville Receiving Reservoir: retired",
+   "system": "croton",
+   "approx": false
+  },
+  {
+   "year": 1931,
+   "feature": null,
+   "type": "milestone",
+   "label": "U.S. Supreme Court decree allows NYC to divert Delaware River water",
+   "system": "delaware",
+   "approx": true
+  },
+  {
+   "year": 1936,
+   "feature": "city-tunnel-2",
+   "type": "in_service",
+   "label": "City Water Tunnel No. 2: in service",
+   "system": "catskill",
+   "approx": false
+  },
+  {
+   "year": 1937,
+   "feature": "rondout",
+   "type": "construction_start",
+   "label": "Rondout Reservoir: construction begins",
+   "system": "delaware",
+   "approx": false
+  },
+  {
+   "year": 1939,
+   "feature": "delaware-aqueduct",
+   "type": "construction_start",
+   "label": "Delaware Aqueduct: construction begins",
+   "system": "delaware",
+   "approx": false
+  },
+  {
+   "year": 1941,
+   "feature": "neversink",
+   "type": "construction_start",
+   "label": "Neversink Reservoir: construction begins",
+   "system": "delaware",
+   "approx": true
+  },
+  {
+   "year": 1941,
+   "feature": "neversink-tunnel",
+   "type": "construction_start",
+   "label": "Neversink Tunnel: construction begins",
+   "system": "delaware",
+   "approx": false
+  },
+  {
+   "year": 1942,
+   "feature": "east-delaware-tunnel",
+   "type": "construction_start",
+   "label": "East Delaware Tunnel: construction begins",
+   "system": "delaware",
+   "approx": false
+  },
+  {
+   "year": 1944,
+   "feature": "delaware-aqueduct",
+   "type": "in_service",
+   "label": "Delaware Aqueduct: in service",
+   "system": "delaware",
+   "approx": false
+  },
+  {
+   "year": 1947,
+   "feature": "pepacton",
+   "type": "construction_start",
+   "label": "Pepacton Reservoir: construction begins",
+   "system": "delaware",
+   "approx": true
+  },
+  {
+   "year": 1949,
+   "feature": "high-bridge",
+   "type": "retired",
+   "label": "High Bridge (aqueduct bridge over the Harlem River): retired",
+   "system": "croton",
+   "approx": false
+  },
+  {
+   "year": 1950,
+   "feature": "rondout",
+   "type": "fill_start",
+   "label": "Rondout Reservoir: starts filling",
+   "system": "delaware",
+   "approx": true
+  },
+  {
+   "year": 1951,
+   "feature": "rondout",
+   "type": "in_service",
+   "label": "Rondout Reservoir: in service",
+   "system": "delaware",
+   "approx": false
+  },
+  {
+   "year": 1953,
+   "feature": "neversink",
+   "type": "fill_start",
+   "label": "Neversink Reservoir: starts filling",
+   "system": "delaware",
+   "approx": false
+  },
+  {
+   "year": 1954,
+   "feature": null,
+   "type": "milestone",
+   "label": "Amended Supreme Court decree raises the Delaware diversion limit",
+   "system": "delaware",
+   "approx": true
+  },
+  {
+   "year": 1954,
+   "feature": "neversink",
+   "type": "in_service",
+   "label": "Neversink Reservoir: in service",
+   "system": "delaware",
+   "approx": true
+  },
+  {
+   "year": 1954,
+   "feature": "neversink-tunnel",
+   "type": "in_service",
+   "label": "Neversink Tunnel: in service",
+   "system": "delaware",
+   "approx": false
+  },
+  {
+   "year": 1954,
+   "feature": "pepacton",
+   "type": "fill_start",
+   "label": "Pepacton Reservoir: starts filling",
+   "system": "delaware",
+   "approx": false
+  },
+  {
+   "year": 1955,
+   "feature": "cannonsville",
+   "type": "construction_start",
+   "label": "Cannonsville Reservoir: construction begins",
+   "system": "delaware",
+   "approx": true
+  },
+  {
+   "year": 1955,
+   "feature": "east-delaware-tunnel",
+   "type": "in_service",
+   "label": "East Delaware Tunnel: in service",
+   "system": "delaware",
+   "approx": false
+  },
+  {
+   "year": 1955,
+   "feature": null,
+   "type": "milestone",
+   "label": "Old Croton Aqueduct taken out of service",
+   "system": "croton",
+   "approx": false
+  },
+  {
+   "year": 1955,
+   "feature": "old-croton-aqueduct",
+   "type": "retired",
+   "label": "Old Croton Aqueduct: retired",
+   "system": "croton",
+   "approx": false
+  },
+  {
+   "year": 1955,
+   "feature": "pepacton",
+   "type": "in_service",
+   "label": "Pepacton Reservoir: in service",
+   "system": "delaware",
+   "approx": false
+  },
+  {
+   "year": 1955,
+   "feature": "west-delaware-tunnel",
+   "type": "construction_start",
+   "label": "West Delaware Tunnel: construction begins",
+   "system": "delaware",
+   "approx": false
+  },
+  {
+   "year": 1963,
+   "feature": "cannonsville",
+   "type": "fill_start",
+   "label": "Cannonsville Reservoir: starts filling",
+   "system": "delaware",
+   "approx": true
+  },
+  {
+   "year": 1964,
+   "feature": "cannonsville",
+   "type": "in_service",
+   "label": "Cannonsville Reservoir: in service",
+   "system": "delaware",
+   "approx": false
+  },
+  {
+   "year": 1964,
+   "feature": "west-delaware-tunnel",
+   "type": "in_service",
+   "label": "West Delaware Tunnel: in service",
+   "system": "delaware",
+   "approx": false
+  },
+  {
+   "year": 1970,
+   "feature": "city-tunnel-3",
+   "type": "construction_start",
+   "label": "City Water Tunnel No. 3: construction begins",
+   "system": "modern",
+   "approx": false
+  },
+  {
+   "year": 1993,
+   "feature": "central-park-upper",
+   "type": "retired",
+   "label": "Central Park Reservoir: retired",
+   "system": "croton",
+   "approx": false
+  },
+  {
+   "year": 1998,
+   "feature": "city-tunnel-3",
+   "type": "in_service",
+   "label": "City Water Tunnel No. 3: in service",
+   "system": "modern",
+   "approx": false
+  },
+  {
+   "year": 2013,
+   "feature": "delaware-bypass",
+   "type": "construction_start",
+   "label": "Rondout-West Branch bypass tunnel: construction begins",
+   "system": "modern",
+   "approx": false
+  },
+  {
+   "year": 2019,
+   "feature": null,
+   "type": "milestone",
+   "label": "Bypass tunnel under the Hudson finished; hookup to the Delaware Aqueduct still pending",
+   "system": "modern",
+   "approx": false
+  }
+ ]
+}

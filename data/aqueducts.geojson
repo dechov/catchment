@@ -1,0 +1,457 @@
+{
+ "type": "FeatureCollection",
+ "note": "SCHEMATIC routes from hand-placed waypoints; not surveyed alignments.",
+ "features": [
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      -73.862,
+      41.226
+     ],
+     [
+      -73.862,
+      41.163
+     ],
+     [
+      -73.863,
+      41.075
+     ],
+     [
+      -73.88,
+      40.945
+     ],
+     [
+      -73.93,
+      40.842
+     ],
+     [
+      -73.969,
+      40.7795
+     ],
+     [
+      -73.9825,
+      40.7533
+     ]
+    ]
+   },
+   "properties": {
+    "id": "old-croton-aqueduct",
+    "name": "Old Croton Aqueduct",
+    "system": "croton",
+    "kind": "aqueduct",
+    "schematic": true
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      -73.9285,
+      40.8435
+     ],
+     [
+      -73.9315,
+      40.841
+     ]
+    ]
+   },
+   "properties": {
+    "id": "high-bridge",
+    "name": "High Bridge (aqueduct bridge over the Harlem River)",
+    "system": "croton",
+    "kind": "bridge",
+    "schematic": true
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      -73.858,
+      41.226
+     ],
+     [
+      -73.85,
+      41.13
+     ],
+     [
+      -73.858,
+      41.01
+     ],
+     [
+      -73.89,
+      40.9
+     ],
+     [
+      -73.8956,
+      40.8778
+     ],
+     [
+      -73.95,
+      40.818
+     ]
+    ]
+   },
+   "properties": {
+    "id": "new-croton-aqueduct",
+    "name": "New Croton Aqueduct",
+    "system": "croton",
+    "kind": "tunnel",
+    "schematic": true
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      -74.205,
+      41.945
+     ],
+     [
+      -74.13,
+      41.83
+     ],
+     [
+      -74.08,
+      41.68
+     ],
+     [
+      -74.04,
+      41.46
+     ],
+     [
+      -73.985,
+      41.43
+     ],
+     [
+      -73.94,
+      41.4
+     ],
+     [
+      -73.82,
+      41.24
+     ],
+     [
+      -73.7639,
+      41.0861
+     ],
+     [
+      -73.8692,
+      40.9122
+     ]
+    ]
+   },
+   "properties": {
+    "id": "catskill-aqueduct",
+    "name": "Catskill Aqueduct",
+    "system": "catskill",
+    "kind": "aqueduct",
+    "schematic": true
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      -74.438,
+      42.31
+     ],
+     [
+      -74.4,
+      42.2
+     ],
+     [
+      -74.38,
+      42.12
+     ]
+    ]
+   },
+   "properties": {
+    "id": "shandaken-tunnel",
+    "name": "Shandaken Tunnel",
+    "system": "catskill",
+    "kind": "tunnel",
+    "schematic": true
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      -73.8692,
+      40.9122
+     ],
+     [
+      -73.9,
+      40.85
+     ],
+     [
+      -73.945,
+      40.8
+     ],
+     [
+      -73.985,
+      40.74
+     ],
+     [
+      -73.99,
+      40.69
+     ]
+    ]
+   },
+   "properties": {
+    "id": "city-tunnel-1",
+    "name": "City Water Tunnel No. 1",
+    "system": "catskill",
+    "kind": "tunnel",
+    "schematic": true
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      -73.8692,
+      40.9122
+     ],
+     [
+      -73.86,
+      40.83
+     ],
+     [
+      -73.88,
+      40.75
+     ],
+     [
+      -73.94,
+      40.69
+     ],
+     [
+      -74.01,
+      40.64
+     ],
+     [
+      -74.06,
+      40.61
+     ]
+    ]
+   },
+   "properties": {
+    "id": "city-tunnel-2",
+    "name": "City Water Tunnel No. 2",
+    "system": "catskill",
+    "kind": "tunnel",
+    "schematic": true
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      -74.4475,
+      41.836
+     ],
+     [
+      -74.36,
+      41.76
+     ],
+     [
+      -74.15,
+      41.64
+     ],
+     [
+      -73.975,
+      41.57
+     ],
+     [
+      -73.95,
+      41.555
+     ],
+     [
+      -73.7,
+      41.425
+     ],
+     [
+      -73.7639,
+      41.0861
+     ],
+     [
+      -73.8692,
+      40.9122
+     ]
+    ]
+   },
+   "properties": {
+    "id": "delaware-aqueduct",
+    "name": "Delaware Aqueduct",
+    "system": "delaware",
+    "kind": "tunnel",
+    "schematic": true
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      -74.82,
+      42.075
+     ],
+     [
+      -74.65,
+      41.96
+     ],
+     [
+      -74.5,
+      41.85
+     ]
+    ]
+   },
+   "properties": {
+    "id": "east-delaware-tunnel",
+    "name": "East Delaware Tunnel",
+    "system": "delaware",
+    "kind": "tunnel",
+    "schematic": true
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      -75.25,
+      42.08
+     ],
+     [
+      -74.95,
+      41.99
+     ],
+     [
+      -74.7,
+      41.9
+     ],
+     [
+      -74.52,
+      41.86
+     ]
+    ]
+   },
+   "properties": {
+    "id": "west-delaware-tunnel",
+    "name": "West Delaware Tunnel",
+    "system": "delaware",
+    "kind": "tunnel",
+    "schematic": true
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      -74.62,
+      41.81
+     ],
+     [
+      -74.54,
+      41.83
+     ],
+     [
+      -74.5,
+      41.84
+     ]
+    ]
+   },
+   "properties": {
+    "id": "neversink-tunnel",
+    "name": "Neversink Tunnel",
+    "system": "delaware",
+    "kind": "tunnel",
+    "schematic": true
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      -73.8692,
+      40.9122
+     ],
+     [
+      -73.88,
+      40.83
+     ],
+     [
+      -73.94,
+      40.77
+     ],
+     [
+      -73.955,
+      40.76
+     ],
+     [
+      -73.985,
+      40.725
+     ]
+    ]
+   },
+   "properties": {
+    "id": "city-tunnel-3",
+    "name": "City Water Tunnel No. 3",
+    "system": "modern",
+    "kind": "tunnel",
+    "schematic": true
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      -73.995,
+      41.58
+     ],
+     [
+      -73.975,
+      41.57
+     ],
+     [
+      -73.95,
+      41.555
+     ]
+    ]
+   },
+   "properties": {
+    "id": "delaware-bypass",
+    "name": "Rondout-West Branch bypass tunnel",
+    "system": "modern",
+    "kind": "tunnel",
+    "schematic": true
+   }
+  }
+ ]
+}
