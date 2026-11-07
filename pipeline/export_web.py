@@ -92,31 +92,8 @@ for i, f in enumerate(reservoirs):
     full_ids[area & (full_ids == 0)] = i + 1
     res_out.append(dict(f, id=i + 1, water_level_m=round(level, 1), area_km2=round(area.sum() * rm["meters_per_pixel_approx"] ** 2 / 1e6, 2)))
 ids = np.asarray(Image.fromarray(ndimage.maximum_filter(full_ids, size=3)).resize(reg.shape[::-1], Image.NEAREST))
-# natural lakes and ponds from OpenStreetMap: id 255 = always water. Polygons that mostly overlap
-# a city reservoir are skipped so those keep their fill schedule.
-from PIL import ImageDraw
-SS = 3
-lake_img = Image.new("L", (reg.shape[1] * SS, reg.shape[0] * SS), 0)
-dl = ImageDraw.Draw(lake_img)
-res_big = np.asarray(Image.fromarray(ids).resize(lake_img.size, Image.NEAREST)) > 0
-n_lakes = 0
-for f in json.load(open(f"{ROOT}/data/osm_lakes.geojson"))["features"]:
-    ring = [lonlat_to_px(rm, lo, la, sc * SS) for lo, la in f["geometry"]["coordinates"][0]]
-    xs, ys = [p[0] for p in ring], [p[1] for p in ring]
-    x0, x1, y0, y1 = int(max(0, min(xs))), int(min(lake_img.size[0] - 1, max(xs))), int(max(0, min(ys))), int(min(lake_img.size[1] - 1, max(ys)))
-    if x1 <= x0 or y1 <= y0:
-        continue
-    if res_big[y0:y1 + 1, x0:x1 + 1].mean() > 0.3:
-        continue
-    dl.polygon(ring, fill=255); n_lakes += 1
-lakes = np.asarray(lake_img.resize(reg.shape[::-1], Image.BOX)) > 100
-ids = ids.copy(); ids[lakes & (ids == 0)] = 255
-print("natural water polygons:", n_lakes)
+# natural lakes, ponds and rivers are added by pipeline/osm_water.py (water_mask.png, rivers.json)
 Image.fromarray(np.stack([ids, np.zeros_like(ids), np.zeros_like(ids)], -1)).save(f"{out}/region_reservoirs.png")
-
-# rivers (OpenStreetMap), simplified, as [lon, lat] polylines
-riv = json.load(open(f"{ROOT}/data/osm_rivers.geojson"))["features"][0]["geometry"]["coordinates"]
-json.dump([[[round(x, 4), round(y, 4)] for x, y in line] for line in riv], open(f"{out}/rivers.json", "w"), separators=(",", ":"))
 
 # --- valley details: before/after terrain + old maps -------------------------------------
 VALLEYS = ["ashokan", "new-croton", "kensico", "schoharie", "rondout", "neversink", "pepacton", "cannonsville"]
@@ -151,8 +128,6 @@ for vid in VALLEYS:
 # --- scene.json -------------------------------------------------------------------------
 dams = json.load(open(f"{ROOT}/data/dams.geojson"))["features"]
 aq = json.load(open(f"{ROOT}/data/aqueducts.geojson"))["features"]
-osm_routes = {f["properties"]["id"]: [[[round(x, 5), round(y, 5)] for x, y in c] for c in f["geometry"]["coordinates"] if len(c) > 1]
-              for f in json.load(open(f"{ROOT}/data/osm_aqueducts.geojson"))["features"] if f["properties"]["length_km"] > 1}
 scene = dict(
     region=dict(bounds=bounds(rm), size=list(reg.shape[::-1])),
     valleys=valleys_out,
@@ -160,10 +135,8 @@ scene = dict(
     dams=[dict(name=d["properties"]["name"], lon=d["geometry"]["coordinates"][0], lat=d["geometry"]["coordinates"][1],
                year=d["properties"]["year_completed"], height_ft=d["properties"]["height_ft"],
                length_ft=d["properties"]["length_ft"]) for d in dams if d["properties"]["year_completed"]],
-    # routes: OpenStreetMap chains where mapped, else the schematic waypoints
-    aqueducts=[dict(f["properties"],
-                    chains=osm_routes.get(f["properties"]["id"]) or [f["geometry"]["coordinates"]],
-                    route="osm" if f["properties"]["id"] in osm_routes else "schematic",
+    # schematic waypoints; real routes, where OpenStreetMap maps them, are in routes.json
+    aqueducts=[dict(f["properties"], coords=f["geometry"]["coordinates"],
                     **{k: next(t for t in timeline["features"] if t["id"] == f["properties"]["id"])[k]
                        for k in ("construction_start", "in_service", "retired")}) for f in aq],
     events=timeline["events"],

@@ -10,10 +10,12 @@ usage: python pipeline/old_maps.py <out_dir> [--only id,id] [--skip url_substrin
 """
 import json, os, sys, urllib.parse, urllib.request
 
-# id: (bbox west, south, east, north), fill start year. Boxes come from the reservoir outlines
-# found in modern terrain (pipeline/export_web.py) plus ~1.5 km.
+# id: (bbox west, south, east, north), fill start year[, latest map year]. Boxes come from the
+# reservoir outlines found in modern terrain (pipeline/export_web.py) plus ~1.5 km. A map cutoff
+# earlier than filling is set where later editions already print the planned reservoir (the
+# 1902 Tarrytown sheet shows New Croton Reservoir in blue).
 VALLEYS = {
-    "new-croton": ((-73.876, 41.200, -73.713, 41.266), 1905),
+    "new-croton": ((-73.876, 41.200, -73.713, 41.266), 1905, 1900),
     "kensico": ((-73.790, 41.052, -73.703, 41.140), 1915),
     "schoharie": ((-74.471, 42.321, -74.417, 42.407), 1924),
     "rondout": ((-74.505, 41.784, -74.408, 41.855), 1950),
@@ -35,12 +37,13 @@ def main():
     only = sys.argv[sys.argv.index("--only") + 1].split(",") if "--only" in sys.argv else list(VALLEYS)
     skip = sys.argv[sys.argv.index("--skip") + 1].split(",") if "--skip" in sys.argv else []
     for vid in only:
-        bbox, fill = VALLEYS[vid]
+        bbox, fill, *cut = VALLEYS[vid]
+        cutoff = cut[0] if cut else fill
         best = {}
         for it in query(bbox):
             year = int(it["publicationDate"][:4])
             scale = next((s for s in SCALE_RANK if f"{s}-scale" in it["title"] or f"_{s}_" in it["downloadURL"]), None)
-            if scale is None or year >= fill or any(s in it["downloadURL"] for s in skip):
+            if scale is None or year >= cutoff or any(s in it["downloadURL"] for s in skip):
                 continue
             bb = it["boundingBox"]
             quad = (round(bb["minX"], 3), round(bb["minY"], 3), round(bb["maxX"], 3), round(bb["maxY"], 3))

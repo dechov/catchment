@@ -12,9 +12,11 @@ npm install
 npm run dev        # then open the printed localhost URL
 ```
 
-Drag the time bar or press play to watch 1830 to 2030. The buttons at the top right fly to the whole system, Ashokan, the Croton watershed, or the city. The URL keeps the year and view, so `?t=1913&view=ashokan` opens on Ashokan filling. Add `q=low` for a lighter mesh on slow machines.
+Drag the time bar or press play to watch 1830 to 2030. The buttons at the top right fly to the whole system, Ashokan, the Croton watershed, the Delaware valleys, or the city; **Underground** turns the ground see-through to follow the tunnels. Every rebuilt valley also has its own view (`view=pepacton`, `cannonsville`, `neversink`, `rondout`, `schoharie`, `kensico`, `new-croton`). The URL keeps the year and view, so `?t=1913&view=ashokan` opens on Ashokan filling. Add `q=low` for a lighter mesh on slow machines, or `q=high` for full mesh detail in the valleys.
 
-`pipeline/export_web.py` writes the scene's data into `web/public/data/`: Terrarium-encoded heightmaps, a reservoir-outline mask found from flat water surfaces, the Ashokan before/after terrain, the old-map texture, and `scene.json`.
+`pipeline/export_web.py` writes the scene's data into `web/public/data/`: Terrarium-encoded heightmaps (kept to 0.25 m), a reservoir-outline mask found from flat water surfaces, and for each rebuilt valley its pre-reservoir ground (`<id>_pre.png`), reservoir footprint (`_mask.png`), dam heights (`_dam.png`) and old-map texture (`_topo.jpg`), plus `scene.json`.
+
+`pipeline/osm_water.py` adds what comes from OpenStreetMap (raw extracts in `data/osm/`): `water_mask.png`, the region's natural lakes, ponds, rivers and other towns' reservoirs (NYC's own are left to the timeline), `rivers.json` (the same rivers as lines), and `routes.json`, the real aqueduct and tunnel routes split into cut-and-cover runs (drawn on the ground) and rock tunnels (drawn 120 m underground with shafts at the portals, and dotted where seen through the terrain). Data © OpenStreetMap contributors, ODbL.
 
 ![Ashokan filling, 1913](docs/scene_ashokan_1913.jpg)
 
@@ -31,9 +33,10 @@ Drag the time bar or press play to watch 1830 to 2030. The buttons at the top ri
 ### Known gaps
 
 - Years flagged `approx` in `timeline.json` are inferred and need checking against primary sources.
-- Aqueduct routes are schematic. OpenStreetMap (Overpass) could not be reached from the build environment.
+- Aqueduct routes come from OpenStreetMap except City Water Tunnels 1-3, the Delaware bypass and High Bridge, which are still schematic. Tunnel depths are a fixed 120 m, not surveyed.
 - Spillway elevations are missing for the smaller Croton reservoirs.
-- Modern terrain shows each reservoir as a flat surface. Pre-dam reconstruction (historic USGS topo maps) is the next step for Ashokan.
+- Only Ashokan's drowned valley follows the surveyed creeks; the other seven are synthetic (see below).
+- Boyds Corner (1872) and Middle Branch (1878) are older than any USGS survey, so the 1890s maps already show them as lakes.
 
 ## Phase 2 (in progress): Ashokan before the dam
 
@@ -44,6 +47,26 @@ Drag the time bar or press play to watch 1830 to 2030. The buttons at the top ri
 `pipeline/compare_contours.py` draws the reconstruction's 20 ft contours (magenta) over the old maps to check it against the survey: [docs/ashokan_contour_check.jpg](docs/ashokan_contour_check.jpg).
 
 Limits: the valley floor between the creeks is interpolated, not surveyed, so small hills and terraces under the water are missing. Which way the Beaver Kill flowed in the east basin is uncertain (both ends are lower than Ashton in the middle).
+
+## Phase 3 (in progress): every big valley before its reservoir
+
+`pipeline/old_maps.py` asks The National Map for the historical USGS sheets over each valley and keeps, per quadrangle, the latest edition printed before filling (1:24,000 where one exists, else 1:31,680 or 1:62,500). For New Croton it stops at 1900, because the 1902 Tarrytown sheet already prints the planned reservoir.
+
+| Valley | Sheets |
+| --- | --- |
+| New Croton | Tarrytown 1893, Carmel 1894, West Point 1899, Stamford 1899 |
+| Kensico | Tarrytown 1902, Stamford 1899 (these show the small 1885 Kensico reservoir) |
+| Schoharie | Gilboa 1903 |
+| Rondout | Lackawack 1942 (1:24,000), Neversink 1944, Slide Mountain 1905 |
+| Neversink | Neversink 1944 |
+| Pepacton | Arena 1946, Margaretville 1946, Andes 1924, Margaretville 1904 |
+| Cannonsville | Deposit 1944, Walton 1925 |
+
+`pipeline/valley.py <id>` then fetches terrain at zoom 14 (about 7 m), warps the sheets onto it (clipped to their neatlines), finds the reservoir from its flat surface, and builds a pre-dam floor. Unlike Ashokan's, that floor is **synthetic**: depth grows with distance from the shore and toward the dam, scaled to the published maximum depth (or 85% of the dam's height). It has the right volume and overall shape, not the real river bed; tracing each valley's old river from its maps, as for Ashokan, would fix that.
+
+![Pepacton valley in 1940, on the 1904–1946 USGS sheets](docs/scene_pepacton_1940.jpg)
+
+In the scene each valley's dam rises out of the ground, the water climbs from the old floor to today's level, and the old map stays on the ground through construction and fades while the valley floods.
 
 ## Regenerating the data
 
@@ -61,6 +84,14 @@ pip install rasterio scipy
 python pipeline/ashokan_predam.py out/terrain out/topo
 python pipeline/compare_contours.py out/terrain out/ashokan_contour_check.png
 python pipeline/render_before_after.py out/terrain out/ashokan_before_after.png
+# the other valleys (scans ~250 MB in out/oldmaps)
+python pipeline/old_maps.py out/oldmaps
+for v in new-croton kensico schoharie rondout neversink pepacton cannonsville; do
+  python pipeline/valley.py $v out/terrain out/oldmaps out/tiles
+done
+# web data (scene.json first, then the OpenStreetMap layers, which read it)
+python pipeline/export_web.py out/terrain web/public/data
+python pipeline/osm_water.py web/public/data
 ```
 
 Terrain outputs (about 90 MB) are not committed.

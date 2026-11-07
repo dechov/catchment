@@ -28,7 +28,11 @@ const T0 = 1830, T1 = 2030;
 const PLAY_YEARS_PER_SEC = 4;
 const MAX_RES = 32;
 const MAX_CUT = 8;
-const LAKE_ID = 255;   // natural water in region_reservoirs.png
+const TUNNEL_DEPTH_M = 120;
+
+// real routes from OpenStreetMap (routes.json), split into runs by how they were built
+interface Run { kind: "tunnel" | "cutcover" | "bridge"; coords: [number, number][] }
+interface Routes { attribution: string; routes: Record<string, { runs: Run[] }> }
 
 async function main() {
   const data: Scene = await (await fetch(D + "scene.json")).json();
@@ -37,11 +41,13 @@ async function main() {
   const frame = new Frame(data.region.bounds);
   const loadingEl = document.getElementById("loading")!;
   let nLoaded = 0;
-  const nFiles = 3 + data.valleys.length * 4;
+  const nFiles = 5 + data.valleys.length * 4;
   const count = <T,>(p: Promise<T>) => p.then((v) => { loadingEl.textContent = `Loading terrain… ${++nLoaded}/${nFiles}`; return v; });
-  const [region, resIdImg, rivers, valleyFiles] = await Promise.all([
+  const [region, resIdImg, waterImg, routes, rivers, valleyFiles] = await Promise.all([
     count(HeightGrid.load(D + "region_height.png", data.region.bounds)),
     count(loadImage(D + "region_reservoirs.png")),
+    count(loadImage(D + "water_mask.png")),
+    count(fetch(D + "routes.json").then((r) => r.json() as Promise<Routes>)),
     count(fetch(D + "rivers.json").then((r) => r.json() as Promise<[number, number][][]>)),
     Promise.all(data.valleys.map((v) => Promise.all([
       count(HeightGrid.load(D + `${v.id}_pre.png`, v.bounds)),
@@ -83,16 +89,18 @@ async function main() {
   const regionBox = box(data.region.bounds);
   const cutouts = data.valleys.slice(0, MAX_CUT).map((v) => box(v.bounds));
   while (cutouts.length < MAX_CUT) cutouts.push(new THREE.Vector4(1e9, 1e9, 1e9, 1e9));
-  const resIdTex = tex(resIdImg, true);
-  // reservoir ids and natural lakes, looked up by scene position (shared by region and valleys)
+  const resIdTex = tex(resIdImg, true), lakeTex = tex(waterImg);
+  // Water looked up by scene position, shared by the region and the valley patches:
+  // the city's reservoirs (id mask, filled on schedule) and natural lakes, ponds and other
+  // towns' reservoirs (OpenStreetMap), in a softer, greyer blue so the city's still stand out.
   const waterGLSL = /* glsl */ `
-    uniform sampler2D resId; uniform float fill[${MAX_RES}]; uniform vec4 regionBox;
-    int waterId(vec3 w) {
-      vec2 uv = vec2((w.x - regionBox.x) / (regionBox.z - regionBox.x), 1.0 - (w.z - regionBox.y) / (regionBox.w - regionBox.y));
-      return int(texture2D(resId, uv).r * 255.0 + 0.5);
+    uniform sampler2D resId; uniform sampler2D lakes; uniform float fill[${MAX_RES}]; uniform vec4 regionBox;
+    vec2 regionUv(vec3 w) {
+      return vec2((w.x - regionBox.x) / (regionBox.z - regionBox.x), 1.0 - (w.z - regionBox.y) / (regionBox.w - regionBox.y));
     }
+    int waterId(vec3 w) { return int(texture2D(resId, regionUv(w)).r * 255.0 + 0.5); }
+    vec3 applyLakes(vec3 c, vec3 w) { return mix(c, LAKE, smoothstep(0.3, 0.6, texture2D(lakes, regionUv(w)).r)); }
     vec3 applyWater(vec3 c, int id) {
-      if (id == ${LAKE_ID}) return WATER;                          // natural lakes and ponds
       if (id > 0 && id < ${MAX_RES}) {
         float f = 0.0;
         for (int k = 0; k < ${MAX_RES}; k++) if (k == id) f = fill[k];
@@ -102,7 +110,7 @@ async function main() {
     }`;
   const regionMat = new THREE.ShaderMaterial({
     uniforms: {
-      resId: { value: resIdTex }, fill: fillU, regionBox: { value: regionBox },
+      resId: { value: resIdTex }, lakes: { value: lakeTex }, fill: fillU, regionBox: { value: regionBox },
       cutouts: { value: cutouts },
       fogColor: { value: new THREE.Color(0xb9c8d4) }, fogNear: { value: 250 }, fogFar: { value: 650 },
       alpha: { value: 1 },
@@ -125,7 +133,7 @@ async function main() {
           vec4 b = cutouts[k];
           if (vW.x > b.x && vW.x < b.z && vW.z > b.y && vW.z < b.w) discard;
         }
-        vec3 c = landColor(vE);
+        vec3 c = applyLakes(landColor(vE), vW);
         if (vE < 0.25) c = WATER * 0.85;               // sea, harbour, tidal Hudson
         c = applyWater(c, waterId(vW));
         c = light(c, vN);
@@ -146,10 +154,11 @@ async function main() {
     const maskData = imageRed(maskImg, pre.w, pre.h);
     const damData = imageRed(damImg, pre.w, pre.h);
     const step = q === "high" ? 1 : low ? 4 : 2;
-    const geo = gridGeometry(pre, frame, step, { damH: (i) => damData[i], inRes: (i) => maskData[i] / 255 });
+    const geo = gridGeometry(pre, frame, step, { damH: (i) => damData[i], inRes: (i) => maskData[i] / 255 },
+      { at: (lo, la) => region.at(lo, la), px: Math.round(pre.w / 40) });
     const u = {
       topo: { value: tex(topoImg) }, topoMix: { value: 1 }, damP: { value: 0 }, alpha: { value: 1 },
-      resId: { value: resIdTex }, fill: fillU, regionBox: { value: regionBox }, ownId: { value: v.reservoir_id },
+      resId: { value: resIdTex }, lakes: { value: lakeTex }, fill: fillU, regionBox: { value: regionBox }, ownId: { value: v.reservoir_id },
       fogColor: { value: new THREE.Color(0xb9c8d4) }, fogNear: { value: 250 }, fogFar: { value: 650 },
     };
     const mat = new THREE.ShaderMaterial({
@@ -171,14 +180,17 @@ async function main() {
         ${waterGLSL}
         void main() {
           vec3 c = landColor(vE);
-          if (vE < 0.25) c = WATER * 0.85;
           // other water around the valley: lakes, and older or neighbouring reservoirs. Inside this
-          // reservoir's own footprint the ground is pre-dam, so only older reservoirs show there.
+          // reservoir's own footprint the ground is pre-dam, so no lakes are drawn there.
+          if (vIn < 0.5) c = applyLakes(c, vW);
+          if (vE < 0.25) c = WATER * 0.85;
           int id = waterId(vW);
-          if (id != ownId && !(vIn > 0.5 && id == ${LAKE_ID})) c = applyWater(c, id);
+          if (id != ownId) c = applyWater(c, id);
           vec3 map = texture2D(topo, vUv).rgb;
           float has = step(0.02, map.r + map.g + map.b);   // outside the sheets' neatlines
-          c = mix(c, map * 1.05, topoMix * has * 0.85);
+          // feather the map out toward the patch edges so it doesn't read as a pasted card
+          float edge = smoothstep(0.0, 0.06, min(min(vUv.x, 1.0 - vUv.x), min(vUv.y, 1.0 - vUv.y)));
+          c = mix(c, map * 1.05, topoMix * has * edge * 0.85);
           c = light(c, vN);
           float fog = smoothstep(fogNear, fogFar, vDepth);
           gl_FragColor = vec4(mix(c, fogColor, fog), alpha);
@@ -212,8 +224,10 @@ async function main() {
       const g = pre.at(lon, lat) + damGrid.at(lon, lat);
       return maskGrid.at(lon, lat) > 127 ? Math.max(v.water_level_m, g) : g;
     };
-    return { v, res, u, water, wU, bed, inside, maskGrid, groundNow,
-             mapYear: Math.max(...v.maps.map((m) => m.year)) };
+    // the old map stays up through the dam-building years and fades out while the valley floods
+    const fadeFrom = res.fill_start ?? (res.in_service ?? 9999) - 1;
+    const fadeTo = Math.max(fadeFrom + 2, res.fill_end ?? res.in_service ?? fadeFrom + 2);
+    return { v, res, u, water, wU, bed, inside, maskGrid, groundNow, fadeFrom, fadeTo };
   });
   // modern ground anywhere: a valley patch where there is one (finer), else the region
   const groundAt = (lon: number, lat: number) => {
@@ -223,9 +237,11 @@ async function main() {
 
   // ---- rivers (OpenStreetMap), draped just above the ground ----------------------------
   const rivPts: number[] = [];
+  const rb = data.region.bounds;
   for (const line of rivers) {
     let prev: number[] | null = null;
     for (const [lo, la] of line) {
+      if (lo < rb.west || lo > rb.east || la < rb.south || la > rb.north) { prev = null; continue; }
       const [x, z] = frame.xz(lo, la);
       const p = [x, yOf(groundAt(lo, la) + 6), z];
       if (prev) rivPts.push(...prev, ...p);
@@ -257,53 +273,64 @@ async function main() {
   const sun = new THREE.DirectionalLight(0xffffff, 1.5); sun.position.set(-1, 1.4, -0.6); scene.add(sun);
 
   // ---- aqueducts and tunnels -----------------------------------------------------------
-  // Deep pressure tunnels run well below ground: drawn on a straight grade between their ends,
-  // never less than TUNNEL_COVER_M under the surface (depths are schematic). Grade aqueducts
-  // (cut-and-cover, masonry) hug the ground; bridges ride above it. Tunnels also get a faint
-  // x-ray copy drawn on top of everything, so they read through the terrain.
-  const TUNNEL_COVER_M = 100;
-  const lineMats: LineMaterial[] = [];
-  const lines = data.aqueducts.map((a) => {
-    const tunnel = a.kind === "tunnel";
-    const shaftPts: number[] = [];
-      const parts: { line: Line2; mat: LineMaterial; xray: boolean }[] = [];
-    for (const chain of a.chains) {
-      if (chain.length < 2) continue;
-      const ll: [number, number][] = [];
-      for (let i = 0; i < chain.length - 1; i++) {
-        const [lo0, la0] = chain[i], [lo1, la1] = chain[i + 1];
-        const n = Math.max(1, Math.ceil(Math.hypot(lo1 - lo0, la1 - la0) / 0.003));
-        for (let k = 0; k < n; k++) ll.push([lo0 + ((lo1 - lo0) * k) / n, la0 + ((la1 - la0) * k) / n]);
-      }
-      ll.push(chain[chain.length - 1]);
-      const ground = ll.map(([lo, la]) => groundAt(lo, la));
-      const g0 = ground[0] - TUNNEL_COVER_M, g1 = ground[ground.length - 1] - TUNNEL_COVER_M;
-      const elev = ground.map((g, i) => tunnel
-        ? Math.min(g - TUNNEL_COVER_M, g0 + ((g1 - g0) * i) / (ground.length - 1))
-        : a.kind === "bridge" ? g + 45 : g + 12);
-      const pts: number[] = [];
-      ll.forEach(([lo, la], i) => { const [x, z] = frame.xz(lo, la); pts.push(x, yOf(elev[i]), z); });
-      if (tunnel) for (const i of [0, ll.length - 1]) {   // shafts/portals at each end
-        const [x, z] = frame.xz(ll[i][0], ll[i][1]);
-        shaftPts.push(x, yOf(elev[i]), z, x, yOf(ground[i] + 20), z);
-      }
-      for (const xray of tunnel ? [false, true] : [false]) {
-        const geo = new LineGeometry(); geo.setPositions(pts);
-        const mat = new LineMaterial({ color: SYSTEM_COLORS[a.system] ?? "#fff", linewidth: xray ? 2.5 : 3.5,
-          dashed: true, dashSize: 1.2, gapSize: 0.6, transparent: true, depthTest: !xray, depthWrite: !xray });
-        mat.resolution.set(innerWidth, innerHeight);
-        lineMats.push(mat);
-        const line = new Line2(geo, mat); line.computeLineDistances();
-        if (xray) line.renderOrder = 10;
-        scene.add(line);
-        parts.push({ line, mat, xray });
-      }
+  // Real routes from OpenStreetMap where mapped (routes.json), else the schematic line.
+  // Cut-and-cover aqueducts lie just under the ground, so they are drawn on it; bridges ride
+  // above it. Rock tunnels run on a straight grade between their portals, never less than
+  // TUNNEL_DEPTH_M under the surface (depths are schematic), with shafts up to each portal.
+  // Terrain hides them like anything else, and a fainter dotted "x-ray" copy shows through it.
+  const surfaceLines = new THREE.Group(); scene.add(surfaceLines);   // lifted when zoomed out
+  const lineMats: LineMaterial[] = [], ghostMats: LineMaterial[] = [];
+  const mkMat = (ghost: boolean) => {
+    const m = new LineMaterial({ linewidth: ghost ? 2.5 : 3.5, dashed: true, dashSize: 1.2, gapSize: 0.6, transparent: true });
+    if (ghost) { m.depthTest = false; m.depthWrite = false; ghostMats.push(m); }
+    m.resolution.set(innerWidth, innerHeight); lineMats.push(m); return m;
+  };
+  function runPoints(r: Run): { pts: number[]; ground: number[]; ll: [number, number][] } {
+    const ll: [number, number][] = [];
+    for (let i = 0; i < r.coords.length - 1; i++) {
+      const [lo0, la0] = r.coords[i], [lo1, la1] = r.coords[i + 1];
+      const n = Math.max(1, Math.ceil(Math.hypot((lo1 - lo0) * 0.75, la1 - la0) / 0.0027));   // ~300 m
+      for (let k = 0; k < n; k++) ll.push([lo0 + ((lo1 - lo0) * k) / n, la0 + ((la1 - la0) * k) / n]);
     }
-    const shafts = new THREE.LineSegments(
-      new THREE.BufferGeometry().setAttribute("position", new THREE.Float32BufferAttribute(shaftPts, 3)),
-      new THREE.LineBasicMaterial({ color: 0x30353a, transparent: true, opacity: 0.8 }));
-    scene.add(shafts);
-    return { a, parts, shafts };
+    ll.push(r.coords[r.coords.length - 1]);
+    const ground = ll.map(([lo, la]) => groundAt(lo, la));
+    const g0 = ground[0] - TUNNEL_DEPTH_M, g1 = ground[ground.length - 1] - TUNNEL_DEPTH_M;
+    const pts: number[] = [];
+    ll.forEach(([lo, la], i) => {
+      const [x, z] = frame.xz(lo, la);
+      const e = r.kind === "tunnel"
+        ? Math.min(ground[i] - TUNNEL_DEPTH_M, g0 + ((g1 - g0) * i) / Math.max(1, ll.length - 1))
+        : ground[i] + (r.kind === "bridge" ? 40 : 12);
+      pts.push(x, yOf(e), z);
+    });
+    return { pts, ground, ll };
+  }
+  const lines = data.aqueducts.map((a) => {
+    const runs: Run[] = routes.routes[a.id]?.runs
+      ?? [{ kind: a.kind === "bridge" ? "bridge" : a.kind === "tunnel" ? "tunnel" : "cutcover", coords: a.coords }];
+    const solid = mkMat(false), ghost = mkMat(true);
+    const objs: THREE.Object3D[] = [];
+    let dist = 0;   // dash distance carried across runs, so the flow reads as one aqueduct
+    for (const r of runs) {
+      if (r.coords.length < 2) continue;
+      const { pts, ground } = runPoints(r);
+      const add = (p: number[], mat: LineMaterial, parent: THREE.Object3D, order = 0) => {
+        const geo = new LineGeometry(); geo.setPositions(p);
+        const l = new Line2(geo, mat); l.computeLineDistances(); l.renderOrder = order;
+        const d0 = l.geometry.attributes.instanceDistanceStart.array as Float32Array;
+        const d1 = l.geometry.attributes.instanceDistanceEnd.array as Float32Array;
+        for (let i = 0; i < d0.length; i++) { d0[i] += dist; d1[i] += dist; }
+        parent.add(l); objs.push(l); return d1[d1.length - 1];
+      };
+      if (r.kind === "tunnel") {
+        add(pts, solid, scene); dist = add(pts, ghost, scene, 10);
+        for (const [k, gi] of [[0, 0], [pts.length - 3, ground.length - 1]]) {   // shafts to the portals
+          const [x, y, z] = pts.slice(k, k + 3), top = yOf(ground[gi] + 15);
+          if (top - y > 0.02) { add([x, y, z, x, top, z], solid, scene); add([x, y, z, x, top, z], ghost, scene, 10); }
+        }
+      } else dist = add(pts, solid, surfaceLines);
+    }
+    return { a, objs, mats: [solid, ghost] };
   });
 
   // underground mode: the terrain turns see-through so the tunnels can be followed at depth
@@ -381,18 +408,18 @@ async function main() {
     history.replaceState(null, "", "?" + p.toString());
   }
 
+  const oldMaps = document.getElementById("oldmaps") as HTMLInputElement;
   let lastCapKey = "";
   function applyYear(t: number) {
     yearEl.textContent = String(Math.floor(t));
     for (const r of data.reservoirs) fillU.value[r.id] = fillFraction(r, t);
+    const mapsOn = oldMaps.checked ? 1 : 0;
     // valleys: the dam rises during construction, then the water climbs from the old valley floor.
     // The old maps fade out as the land is cleared, from construction to the start of filling.
     for (const vv of valleys) {
       const f = fillFraction(vv.res, t);
       vv.u.damP.value = damProgress(vv.res, t);
-      const fs = vv.res.fill_start ?? (vv.res.in_service ?? 9999) - 1;
-      const fadeFrom = Math.max(vv.mapYear, fs - 6);
-      vv.u.topoMix.value = 1 - Math.min(1, Math.max(0, (t - fadeFrom) / Math.max(1, fs - fadeFrom)));
+      vv.u.topoMix.value = mapsOn * (1 - Math.min(1, Math.max(0, (t - vv.fadeFrom) / (vv.fadeTo - vv.fadeFrom))));
       vv.water.position.y = yOf(vv.bed + (vv.v.water_level_m - vv.bed) * Math.sqrt(f)) + 0.002;
       vv.wU.alpha.value = f > 0 ? 1 : 0;
     }
@@ -400,15 +427,15 @@ async function main() {
       const p = damProgressFromYear(d, t);
       m.visible = p > 0; m.scale.y = Math.max(0.001, p);
     }
-    for (const { a, parts, shafts } of lines) {
+    for (const { a, objs, mats } of lines) {
       const st = lineState(a, t);
-      shafts.visible = st !== "hidden";
-      for (const { line, mat, xray: isX } of parts) {
-        line.visible = st !== "hidden";
+      for (const o of objs) o.visible = st !== "hidden";
+      for (const mat of mats) {
+        const isX = mat !== mats[0];
         if (st === "building") { mat.color.set("#f2b33d"); mat.dashSize = 0.5; mat.gapSize = 0.5; }
         else if (st === "service") { mat.color.set(SYSTEM_COLORS[a.system] ?? "#fff"); mat.dashSize = 1.6; mat.gapSize = 0.35; }
         else if (st === "retired") { mat.color.set("#7d858c"); mat.dashSize = 100; mat.gapSize = 0; }
-        mat.opacity = (st === "retired" ? 0.55 : 1) * (isX ? (underground ? 0.9 : 0.5) : 1);
+        mat.opacity = (st === "retired" ? 0.55 : 1) * (isX ? (underground ? 0.9 : 0.6) : 1);
       }
     }
     for (const { r, div } of resLabels) {
@@ -444,6 +471,11 @@ async function main() {
     }
     applyYear(year);
     for (const m of lineMats) m.dashOffset -= dt * 1.2;   // water flowing downstream
+    // lines on the ground lift a little more the further away the camera is, so the depth
+    // buffer does not lose them in the terrain at whole-region scale; the x-ray dots scale too
+    const camD = camera.position.distanceTo(controls.target);
+    surfaceLines.position.y = camD * 0.0012;
+    for (const m of ghostMats) { if (m.dashSize < 50) { m.dashSize = camD * 0.006; m.gapSize = camD * 0.006; } }
     if (flight) {
       flight.t = Math.min(1, flight.t + dt / 1.6);
       const e = flight.t < 0.5 ? 2 * flight.t * flight.t : 1 - Math.pow(-2 * flight.t + 2, 2) / 2;
@@ -462,7 +494,7 @@ async function main() {
   });
   // for automated screenshots: window.catchment.setYear(1915)
   requestAnimationFrame(() => requestAnimationFrame(() => ((window as any).__ready = true)));
-  (window as any).catchment = { setYear: (y: number) => { year = y; slider.value = String(y); }, go };
+  (window as any).catchment = { setYear: (y: number) => { year = y; slider.value = String(y); }, go, camera, controls, frame };
 }
 
 const EXAG_STR = "3.0";

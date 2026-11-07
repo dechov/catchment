@@ -6,9 +6,7 @@ export interface Reservoir {
   in_service: number | null; retired: number | null; water_level_m: number; approx: string[];
 }
 export interface Aqueduct {
-  id: string; name: string; system: string; kind: string;
-  /** route pieces: OpenStreetMap chains where mapped, else one schematic polyline */
-  chains: [number, number][][]; route: "osm" | "schematic";
+  id: string; name: string; system: string; kind: string; coords: [number, number][];
   construction_start: number | null; in_service: number | null; retired: number | null;
 }
 export interface Dam { name: string; lon: number; lat: number; year: number; height_ft: number | null; length_ft: number | null }
