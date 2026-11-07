@@ -1,0 +1,248 @@
+{
+ "source": "USGS Historical Topographic Map Collection; AWS Terrain Tiles",
+ "patches": [
+  {
+   "name": "croton",
+   "label": "Croton watershed",
+   "bounds": {
+    "west": -73.90022277832031,
+    "east": -73.57990264892578,
+    "north": 41.470000889751304,
+    "south": 41.19983978689713
+   },
+   "size": [
+    933,
+    1048
+   ],
+   "before": 1900,
+   "reservoirs": [
+    4,
+    5,
+    6,
+    7,
+    8,
+    10,
+    11,
+    12
+   ],
+   "sheets": [
+    {
+     "quad": "Tarrytown",
+     "year": 1893,
+     "predates_dam": true,
+     "url": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Maps/HistoricalTopo/GeoTIFF/NY/NY_Tarrytown_144292_1893_62500_geo.tif"
+    },
+    {
+     "quad": "West Point",
+     "year": 1899,
+     "predates_dam": true,
+     "url": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Maps/HistoricalTopo/GeoTIFF/NY/NY_West%20Point_144451_1899_62500_geo.tif"
+    },
+    {
+     "quad": "Stamford",
+     "year": 1899,
+     "predates_dam": true,
+     "url": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Maps/HistoricalTopo/GeoTIFF/CT/NY_Stamford_139871_1899_62500_geo.tif"
+    },
+    {
+     "quad": "Carmel",
+     "year": 1894,
+     "predates_dam": true,
+     "url": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Maps/HistoricalTopo/GeoTIFF/NY/NY_Carmel_140436_1894_62500_geo.tif"
+    }
+   ]
+  },
+  {
+   "name": "kensico",
+   "label": "Kensico",
+   "bounds": {
+    "west": -73.81027221679688,
+    "east": -73.68976593017578,
+    "north": 41.16004614168689,
+    "south": 41.04984169548294
+   },
+   "size": [
+    351,
+    426
+   ],
+   "before": 1913,
+   "reservoirs": [
+    14
+   ],
+   "sheets": [
+    {
+     "quad": "Tarrytown",
+     "year": 1902,
+     "predates_dam": true,
+     "url": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Maps/HistoricalTopo/GeoTIFF/NY/NY_Tarrytown_139974_1902_62500_geo.tif"
+    },
+    {
+     "quad": "Stamford",
+     "year": 1899,
+     "predates_dam": true,
+     "url": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Maps/HistoricalTopo/GeoTIFF/CT/NY_Stamford_139871_1899_62500_geo.tif"
+    }
+   ]
+  },
+  {
+   "name": "schoharie",
+   "label": "Schoharie",
+   "bounds": {
+    "west": -74.51030731201172,
+    "east": -74.35993194580078,
+    "north": 42.420161792960315,
+    "south": 42.27984895976738
+   },
+   "size": [
+    438,
+    553
+   ],
+   "before": 1919,
+   "reservoirs": [
+    16
+   ],
+   "sheets": [
+    {
+     "quad": "Hobart",
+     "year": 1904,
+     "predates_dam": true,
+     "url": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Maps/HistoricalTopo/GeoTIFF/NY/NY_Hobart_139692_1904_62500_geo.tif"
+    },
+    {
+     "quad": "Gilboa",
+     "year": 1903,
+     "predates_dam": true,
+     "url": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Maps/HistoricalTopo/GeoTIFF/NY/NY_Gilboa_139583_1903_62500_geo.tif"
+    }
+   ]
+  },
+  {
+   "name": "rondout",
+   "label": "Rondout",
+   "bounds": {
+    "west": -74.520263671875,
+    "east": -74.32971954345703,
+    "north": 41.88004206297359,
+    "south": 41.77976088610561
+   },
+   "size": [
+    555,
+    392
+   ],
+   "before": 1937,
+   "reservoirs": [
+    17
+   ],
+   "sheets": [
+    {
+     "quad": "Neversink",
+     "year": 1910,
+     "predates_dam": true,
+     "url": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Maps/HistoricalTopo/GeoTIFF/NY/NY_Neversink_144208_1910_62500_geo.tif"
+    },
+    {
+     "quad": "Slide Mountain",
+     "year": 1905,
+     "predates_dam": true,
+     "url": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Maps/HistoricalTopo/GeoTIFF/NY/NY_Slide%20Mountain_148515_1905_62500_geo.tif"
+    }
+   ]
+  },
+  {
+   "name": "neversink",
+   "label": "Neversink",
+   "bounds": {
+    "west": -74.71012115478516,
+    "east": -74.5697021484375,
+    "north": 41.91019797889928,
+    "south": 41.78974487671898
+   },
+   "size": [
+    409,
+    471
+   ],
+   "before": 1941,
+   "reservoirs": [
+    18
+   ],
+   "sheets": [
+    {
+     "quad": "Neversink",
+     "year": 1910,
+     "predates_dam": true,
+     "url": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Maps/HistoricalTopo/GeoTIFF/NY/NY_Neversink_144208_1910_62500_geo.tif"
+    }
+   ]
+  },
+  {
+   "name": "pepacton",
+   "label": "Pepacton",
+   "bounds": {
+    "west": -75.0201416015625,
+    "east": -74.65999603271484,
+    "north": 42.1700196186859,
+    "south": 42.01996768189202
+   },
+   "size": [
+    1049,
+    589
+   ],
+   "before": 1947,
+   "reservoirs": [
+    19
+   ],
+   "sheets": [
+    {
+     "quad": "Walton",
+     "year": 1925,
+     "predates_dam": true,
+     "url": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Maps/HistoricalTopo/GeoTIFF/NY/NY_Walton_139524_1925_62500_geo.tif"
+    },
+    {
+     "quad": "Andes",
+     "year": 1924,
+     "predates_dam": true,
+     "url": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Maps/HistoricalTopo/GeoTIFF/NY/NY_Andes_139170_1924_62500_geo.tif"
+    },
+    {
+     "quad": "Margaretville",
+     "year": 1904,
+     "predates_dam": true,
+     "url": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Maps/HistoricalTopo/GeoTIFF/NY/NY_Margaretville_130467_1904_62500_geo.tif"
+    }
+   ]
+  },
+  {
+   "name": "cannonsville",
+   "label": "Cannonsville",
+   "bounds": {
+    "west": -75.43006896972656,
+    "east": -75.11970520019531,
+    "north": 42.15016895950387,
+    "south": 42.01996768189202
+   },
+   "size": [
+    904,
+    511
+   ],
+   "before": 1955,
+   "reservoirs": [
+    20
+   ],
+   "sheets": [
+    {
+     "quad": "Deposit",
+     "year": 1944,
+     "predates_dam": true,
+     "url": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Maps/HistoricalTopo/GeoTIFF/NY/NY_Deposit_137879_1944_62500_geo.tif"
+    },
+    {
+     "quad": "Walton",
+     "year": 1925,
+     "predates_dam": true,
+     "url": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Maps/HistoricalTopo/GeoTIFF/NY/NY_Walton_139524_1925_62500_geo.tif"
+    }
+   ]
+  }
+ ]
+}

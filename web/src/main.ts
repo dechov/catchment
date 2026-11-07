@@ -22,6 +22,8 @@ interface Routes { attribution: string; routes: Record<string, { runs: Run[] }> 
 
 const D = "./data/";
 const TUNNEL_DEPTH_M = 120;
+const MAX_CUT = 12;
+interface PatchInfo { name: string; label: string; bounds: Bounds; size: [number, number]; before: number; reservoirs: number[] }
 const T0 = 1830, T1 = 2030;
 const PLAY_YEARS_PER_SEC = 4;
 const MAX_RES = 32;
@@ -40,6 +42,13 @@ async function main() {
     loadImage(D + "water_mask.png"),
     fetch(D + "routes.json").then((r) => r.json() as Promise<Routes>),
   ]);
+  // high-resolution valleys with the old USGS maps made before their dams (patches.json)
+  const patchList: PatchInfo[] = (await (await fetch(D + "patches.json")).json()).patches;
+  const patchAssets = await Promise.all(patchList.map((p) => Promise.all([
+    HeightGrid.load(D + `patch_${p.name}_height.png`, p.bounds),
+    loadImage(D + `patch_${p.name}_map.jpg`),
+    loadImage(D + `patch_${p.name}_res.png`),
+  ])));
 
   // ---- renderer, camera, controls ------------------------------------------------------
   const app = document.getElementById("app")!;
@@ -71,10 +80,18 @@ async function main() {
   const ab = data.ashokan.bounds;
   const [ax0, az0] = frame.xz(ab.west, ab.north), [ax1, az1] = frame.xz(ab.east, ab.south);
   const fillU = { value: new Float32Array(MAX_RES) };
+  // the region is cut away under every detail patch; a small inset lets the patch overlap it
+  const rect = (b: Bounds, inset = 0) => {
+    const [x0, z0] = frame.xz(b.west, b.north), [x1, z1] = frame.xz(b.east, b.south);
+    return new THREE.Vector4(x0 + inset, z0 + inset, x1 - inset, z1 - inset);
+  };
+  const cutouts = [rect(ab), ...patchList.map((p) => rect(p.bounds, 0.04))];
+  while (cutouts.length < MAX_CUT) cutouts.push(new THREE.Vector4(0, 0, 0, 0));
+  const regionRect = rect(data.region.bounds);
   const regionMat = new THREE.ShaderMaterial({
     uniforms: {
       resId: { value: tex(resIdImg, true) }, fill: fillU, water: { value: tex(waterImg) },
-      cutout: { value: new THREE.Vector4(ax0, az0, ax1, az1) },
+      cutouts: { value: cutouts },
       fogColor: { value: new THREE.Color(0xb9c8d4) }, fogNear: { value: 250 }, fogFar: { value: 650 },
     },
     vertexShader: /* glsl */ `
@@ -85,12 +102,15 @@ async function main() {
         gl_Position = projectionMatrix * mv;
       }`,
     fragmentShader: /* glsl */ `
-      uniform sampler2D resId; uniform float fill[${MAX_RES}]; uniform vec4 cutout; uniform sampler2D water;
+      uniform sampler2D resId; uniform float fill[${MAX_RES}]; uniform vec4 cutouts[${MAX_CUT}]; uniform sampler2D water;
       uniform vec3 fogColor; uniform float fogNear; uniform float fogFar;
       varying vec3 vN; varying vec2 vUv; varying float vE; varying vec3 vW; varying float vDepth;
       ${shadeGLSL}
       void main() {
-        if (vW.x > cutout.x && vW.x < cutout.z && vW.z > cutout.y && vW.z < cutout.w) discard;
+        for (int i = 0; i < ${MAX_CUT}; i++) {
+          vec4 r = cutouts[i];
+          if (vW.x > r.x && vW.x < r.z && vW.z > r.y && vW.z < r.w) discard;
+        }
         vec3 c = landColor(vE);
         // natural lakes, ponds, rivers and other towns' reservoirs (OpenStreetMap): a softer,
         // greyer blue than the city's reservoirs so those still stand out
@@ -107,8 +127,58 @@ async function main() {
         gl_FragColor = vec4(mix(c, fogColor, fog), 1.0);
       }`,
   });
-  const regionMesh = new THREE.Mesh(gridGeometry(region, frame, low ? 4 : 2), regionMat);
+  const regionMesh = new THREE.Mesh(gridGeometry(region, frame, low ? 3 : 1), regionMat);
   scene.add(regionMesh);
+
+  // ---- detail patches: ~4x the region's resolution, old maps draped until the dams -------
+  const oldMaps = document.getElementById("oldmaps") as HTMLInputElement;
+  const patches = patchList.map((p, k) => {
+    const [hg, mapImg, resImg] = patchAssets[k];
+    const res = data.reservoirs.filter((r) => p.reservoirs.includes(r.id));
+    // the map stays up through the dam-building years and fades as the last valley floods
+    const fadeFrom = Math.max(...res.map((r) => r.fill_start ?? (r.in_service ?? 9999) - 1), p.before);
+    const fadeTo = Math.max(fadeFrom + 3, ...res.map((r) => (r.in_service ?? 0) + 2));
+    const u = {
+      topo: { value: tex(mapImg) }, topoMix: { value: 1 }, resId: { value: tex(resImg, true) }, fill: fillU,
+      water: { value: tex(waterImg) }, regionRect: { value: regionRect },
+      fogColor: { value: new THREE.Color(0xb9c8d4) }, fogNear: { value: 250 }, fogFar: { value: 650 },
+    };
+    const mat = new THREE.ShaderMaterial({
+      uniforms: u,
+      vertexShader: /* glsl */ `
+        varying vec3 vN; varying vec2 vUv; varying float vE; varying vec3 vW; varying float vDepth;
+        void main() {
+          vN = normal; vUv = uv; vE = position.y * 1000.0 / ${EXAG_STR}; vW = position;
+          vec4 mv = modelViewMatrix * vec4(position, 1.0); vDepth = -mv.z;
+          gl_Position = projectionMatrix * mv;
+        }`,
+      fragmentShader: /* glsl */ `
+        uniform sampler2D topo; uniform float topoMix; uniform sampler2D resId; uniform float fill[${MAX_RES}];
+        uniform sampler2D water; uniform vec4 regionRect;
+        uniform vec3 fogColor; uniform float fogNear; uniform float fogFar;
+        varying vec3 vN; varying vec2 vUv; varying float vE; varying vec3 vW; varying float vDepth;
+        ${shadeGLSL}
+        void main() {
+          vec3 c = landColor(vE);
+          vec2 ruv = vec2((vW.x - regionRect.x) / (regionRect.z - regionRect.x),
+                          1.0 - (vW.z - regionRect.y) / (regionRect.w - regionRect.y));
+          vec2 w = texture2D(water, ruv).rg;
+          c = mix(c, LAKE, smoothstep(0.25, 0.6, max(w.r, w.g)));
+          vec3 map = texture2D(topo, vUv).rgb;
+          float has = step(0.02, map.r + map.g + map.b);
+          // feather the map out toward the patch edges so it doesn't read as a pasted card
+          float edge = smoothstep(0.0, 0.07, min(min(vUv.x, 1.0 - vUv.x), min(vUv.y, 1.0 - vUv.y)));
+          c = mix(c, map * 1.05, topoMix * has * edge * 0.85);
+          int id = int(texture2D(resId, vUv).r * 255.0 + 0.5);
+          if (id > 0) c = mix(c, WATER, fill[id]);
+          c = light(c, vN);
+          float fog = smoothstep(fogNear, fogFar, vDepth);
+          gl_FragColor = vec4(mix(c, fogColor, fog), 1.0);
+        }`,
+    });
+    scene.add(new THREE.Mesh(gridGeometry(hg, frame, low ? 2 : 1), mat));
+    return { p, u, fadeFrom, fadeTo };
+  });
 
   // ---- Ashokan detail: the reconstructed valley, with the dam rising and water filling --
   const level = data.ashokan.water_level_m;
@@ -267,6 +337,7 @@ async function main() {
     region: { target: at(-74.5, 41.5), offset: new THREE.Vector3(-20, 230, 150) },
     ashokan: { target: at(-74.17, 41.955), offset: new THREE.Vector3(-3, 13, 15) },
     croton: { target: at(-73.76, 41.3), offset: new THREE.Vector3(-8, 22, 26) },
+    delaware: { target: at(-74.85, 42.0), offset: new THREE.Vector3(-6, 38, 42) },
     city: { target: at(-73.93, 40.82), offset: new THREE.Vector3(-10, 30, 34) },
   };
   let flight: { from: [THREE.Vector3, THREE.Vector3]; to: [THREE.Vector3, THREE.Vector3]; t: number } | null = null;
@@ -313,7 +384,11 @@ async function main() {
     // Ashokan: the dam rises during construction, then the water climbs from the old creek bed
     const f = fillFraction(ashRes, t);
     ashU.damP.value = damProgress(ashRes, t);
-    ashU.topoMix.value = 1 - Math.min(1, Math.max(0, (t - 1908) / 6));
+    const mapsOn = oldMaps.checked ? 1 : 0;
+    ashU.topoMix.value = mapsOn * (1 - Math.min(1, Math.max(0, (t - 1908) / 6)));
+    for (const { u, fadeFrom, fadeTo } of patches) {
+      u.topoMix.value = mapsOn * (1 - Math.min(1, Math.max(0, (t - fadeFrom) / (fadeTo - fadeFrom))));
+    }
     ashWater.position.y = yOf(bedM + (level - bedM) * Math.sqrt(f)) + 0.002;
     ashWaterU.alpha.value = f > 0 ? 1 : 0;
     for (const { d, m } of damMeshes) {

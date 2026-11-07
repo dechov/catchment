@@ -20,6 +20,28 @@ Drag the time bar or press play to watch 1830 to 2030. The buttons at the top ri
 
 ![Ashokan filling, 1913](docs/scene_ashokan_1913.jpg)
 
+
+### Detail patches: the valleys before the dams
+
+`pipeline/patches.py` adds seven high-resolution valleys (Croton watershed, Kensico, Schoharie, Rondout, Neversink, Pepacton, Cannonsville), each with the last USGS 1:62,500 survey made before its dam draped over the terrain, as Ashokan already has. Terrain comes from zoom-12 tiles (~30 m, four times the region's resolution), and the region mesh itself is now drawn at full resolution. The maps stay up through the construction years and fade as the last reservoir in the valley fills; a legend checkbox turns them off.
+
+| Valley | Sheets (year) |
+| --- | --- |
+| Croton | Tarrytown 1893, Carmel 1894, West Point 1899, Stamford 1899 |
+| Kensico | Tarrytown 1902, Stamford 1899 |
+| Schoharie | Gilboa 1903, Hobart 1904 |
+| Rondout | Slide Mountain 1905, Neversink 1910 |
+| Neversink | Neversink 1910 |
+| Pepacton | Margaretville 1904, Andes 1924, Walton 1925 |
+| Cannonsville | Walton 1925, Deposit 1944 |
+
+```sh
+python3 -m venv .venv && .venv/bin/pip install rasterio numpy scipy pillow
+.venv/bin/python pipeline/patches.py plan  out/patches                   # choose sheets via the USGS TNM API
+.venv/bin/python pipeline/patches.py fetch out/patches                   # ~120 MB of GeoTIFFs + terrain tiles
+.venv/bin/python pipeline/patches.py build out/patches web/public/data
+```
+
 ## Status: phase 1 (data spike)
 
 | Path | What it is | Source |
