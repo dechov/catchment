@@ -75,7 +75,6 @@ EXTRA_EVENTS = [
     (1905, "State Water Supply Act creates the Board of Water Supply", "catskill", True),
     (1931, "U.S. Supreme Court decree allows NYC to divert Delaware River water", "delaware", True),
     (1954, "Amended Supreme Court decree raises the Delaware diversion limit", "delaware", True),
-    (1955, "Old Croton Aqueduct taken out of service", "croton", False),
     (2019, "Bypass tunnel under the Hudson finished; hookup to the Delaware Aqueduct still pending", "modern", False),
 ]
 
