@@ -1,0 +1,123 @@
+{
+ "type": "FeatureCollection",
+ "note": "Pre-dam stream centerlines hand-traced from the georeferenced USGS 1:62,500 Rosendale (1903) and Slide Mountain (1905) sheets. Listed downstream to upstream. Approximate (~50 m).",
+ "features": [
+  {
+   "type": "Feature",
+   "properties": {
+    "name": "Esopus Creek (pre-dam)",
+    "start_elev_m": 121.0,
+    "start_elev_source": "Ashokan Reservoir max depth 190 ft below 587 ft spillway (Wikipedia)",
+    "end_elev": "water_level"
+   },
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      -74.22332,
+      41.93878
+     ],
+     [
+      -74.22829,
+      41.94062
+     ],
+     [
+      -74.22994,
+      41.94493
+     ],
+     [
+      -74.23077,
+      41.95047
+     ],
+     [
+      -74.23822,
+      41.95355
+     ],
+     [
+      -74.24402,
+      41.95478
+     ],
+     [
+      -74.24484,
+      41.95971
+     ],
+     [
+      -74.2465,
+      41.96586
+     ],
+     [
+      -74.24898,
+      41.97078
+     ],
+     [
+      -74.25312,
+      41.97448
+     ],
+     [
+      -74.2614,
+      41.98186
+     ],
+     [
+      -74.26802,
+      41.98924
+     ],
+     [
+      -74.27216,
+      41.99724
+     ]
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "name": "Beaver Kill (pre-dam)",
+    "start_elev": "junction",
+    "end_elev_m": 166.4,
+    "end_elev_source": "spot elevation 546 ft at West Hurley station, USGS Rosendale 1903",
+    "note": "Flow direction in the east basin is uncertain: West Hurley (546 ft) and Browns Station (530 ft) are both low, Ashton (612 ft) between them. Traced as draining southwest to the Esopus."
+   },
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      -74.22829,
+      41.94062
+     ],
+     [
+      -74.21505,
+      41.94555
+     ],
+     [
+      -74.20511,
+      41.95171
+     ],
+     [
+      -74.19353,
+      41.95848
+     ],
+     [
+      -74.18194,
+      41.96463
+     ],
+     [
+      -74.16539,
+      41.97202
+     ],
+     [
+      -74.14883,
+      41.97817
+     ],
+     [
+      -74.12566,
+      41.98309
+     ],
+     [
+      -74.10414,
+      41.98161
+     ]
+    ]
+   }
+  }
+ ]
+}

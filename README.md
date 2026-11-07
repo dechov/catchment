@@ -21,6 +21,16 @@ Plan: [NYC Water History in 3D](https://claude.ai/artifact/7ar4CxqWiGdjeNMVFFmz3
 - Spillway elevations are missing for the smaller Croton reservoirs.
 - Modern terrain shows each reservoir as a flat surface. Pre-dam reconstruction (historic USGS topo maps) is the next step for Ashokan.
 
+## Phase 2 (in progress): Ashokan before the dam
+
+`pipeline/ashokan_predam.py` rebuilds the Esopus valley under Ashokan Reservoir as it was before filling began in 1912. It masks the reservoir's flat surface in modern terrain, removes the Olive Bridge Dam, and drops the old Esopus Creek and Beaver Kill (hand-traced from the 1903 and 1905 USGS sheets into `data/ashokan_thalwegs.geojson`) to their old beds. It then fills the basin between those creeks and the shoreline. The deepest point comes out at 57 m below today's water level; the published maximum depth is 190 ft (58 m).
+
+![Ashokan before and after](docs/ashokan_before_after.jpg)
+
+`pipeline/compare_contours.py` draws the reconstruction's 20 ft contours (magenta) over the old maps to check it against the survey: [docs/ashokan_contour_check.jpg](docs/ashokan_contour_check.jpg).
+
+Limits: the valley floor between the creeks is interpolated, not surveyed, so small hills and terraces under the water are missing. Which way the Beaver Kill flowed in the east basin is uncertain (both ends are lower than Ashton in the middle).
+
 ## Regenerating the data
 
 ```sh
@@ -31,6 +41,12 @@ python pipeline/build_timeline.py
 python pipeline/terrain.py region 12 -75.55 40.5 -73.45 42.45 out/terrain out/tiles   # ~28 m/px, ~775 tiles
 python pipeline/terrain.py ashokan 14 -74.33 41.90 -74.04 42.02 out/terrain out/tiles # ~7 m/px
 python pipeline/preview_map.py out/terrain docs/alignment_check.png
+# pre-dam Ashokan: put NY_Slide Mountain_148515_1905_62500_geo.tif and NY_Rosendale_148354_1903_62500_geo.tif
+# (USGS topoView / prd-tnm.s3.amazonaws.com/StagedProducts/Maps/HistoricalTopo/GeoTIFF/NY/) in out/topo
+pip install rasterio scipy
+python pipeline/ashokan_predam.py out/terrain out/topo
+python pipeline/compare_contours.py out/terrain out/ashokan_contour_check.png
+python pipeline/render_before_after.py out/terrain out/ashokan_before_after.png
 ```
 
 Terrain outputs (about 90 MB) are not committed.
