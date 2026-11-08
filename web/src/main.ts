@@ -853,7 +853,7 @@ class MapStack {
  *  irregular edge rather than a rectangle. Coverage and distance are worked out on a small grid
  *  and the alpha is scaled up smoothly onto the full image. */
 function softMapEdges(img: HTMLImageElement): THREE.Texture {
-  const G = 256, s = G / Math.max(img.width, img.height);
+  const G = 512, s = G / Math.max(img.width, img.height);
   const w = Math.max(8, Math.round(img.width * s)), h = Math.max(8, Math.round(img.height * s));
   const small = document.createElement("canvas"); small.width = w; small.height = h;
   const sx = small.getContext("2d", { willReadFrequently: true })!;
@@ -881,10 +881,14 @@ function softMapEdges(img: HTMLImageElement): THREE.Texture {
     const a = hash(x0, y0) + (hash(x0 + 1, y0) - hash(x0, y0)) * ux, b = hash(x0, y0 + 1) + (hash(x0 + 1, y0 + 1) - hash(x0, y0 + 1)) * ux;
     return a + (b - a) * uy;
   };
-  const F = 0.05 * G;   // the width of the fade at a sheet's edge, in cells
+  // the width of the fade at a sheet's edge, in cells: 5% of the patch, but no more than a
+  // quarter of the way into the map's widest part, so a narrow map (Manhattan) keeps its middle
+  let dMax = 0;
+  for (let i = 0; i < w * h; i++) if (d[i] < 1e8 && d[i] > dMax) dMax = d[i];
+  const F = Math.max(2, Math.min(0.05 * G, (dMax / 3) * 0.25));
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
     const i = y * w + x;
-    const n = 0.65 * vnoise(x / 28, y / 28) + 0.35 * vnoise(x / 9 + 50, y / 9 + 50);
+    const n = 0.65 * vnoise(x / 56, y / 56) + 0.35 * vnoise(x / 18 + 50, y / 18 + 50);
     const t = Math.min(1, Math.max(0, (d[i] / 3 - n * 0.7 * F) / F));
     // toward the patch border: a squircle (rounded rectangle) with a wandering rim, fading over
     // the outer third or so, so a patch's map reads as a soft, irregular blob

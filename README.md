@@ -84,7 +84,7 @@ In the scene each valley's dam rises out of the ground and the water climbs from
 - **Displaced communities.** Up close, each reservoir's label lists the hamlets it took and, where the sources give one, how many people were displaced (Ashokan about 2,000; Pepacton 974), from the Wikipedia articles on each reservoir (`web/src/displaced.ts`).
 - **Stories.** The Stories button steps through ten short episodes (`web/src/episodes.ts`), from wells and the Collect Pond to today's catchment: each flies the camera to its place, sets or plays its years, and shows a caption, some with a chart of water use against dependable supply. `?story=N` opens one directly.
 - **Droughts.** In 1949–50, the 1960s, 1980–81, 1985 and 2001–02 every full reservoir draws down together to the system's low (≈ 25–55% full; rounded approximations), the water planes sink and the bare bed shows as mud; the city's column notes the drought (`storage()` in `web/src/demand.ts`).
-- **The city.** A ~7 m patch over Manhattan, Brooklyn and the Bronx with USGS editions from 1891, 1900, 1947, 1966 and 1995 (`valley.py city`, `map_editions.py`).
+- **The city.** A ~7 m patch over Manhattan, Brooklyn and the Bronx with USGS editions from 1891, 1900, 1947, 1966 and 1995 (`valley.py city`, `map_editions.py`), and before them Manhattan maps from the David Rumsey Map Collection: Colton 1836, Dripps 1851–52, Colton 1855 and Viele 1865, from Stanford's georeferenced copies (CC BY-NC-SA 3.0; `rumsey_editions.py`, which clips them to the island). The source PNGs are in the project files under `nyc-water/sim/oldmaps/rumsey/`.
 
 ![Lower Manhattan on the 1900 USGS sheets](docs/scene_lower_manhattan_1880.jpg)
 
@@ -110,6 +110,7 @@ for v in new-croton kensico schoharie rondout neversink pepacton cannonsville ci
   python pipeline/valley.py $v out/terrain out/oldmaps out/tiles
 done
 python pipeline/map_editions.py out/terrain out/oldmaps   # dated editions (~1 GB more scans)
+python pipeline/rumsey_editions.py out/terrain out/oldmaps/rumsey   # Manhattan 1836-1865, ahead of the USGS editions
 # web data (scene.json first, then the OpenStreetMap layers, which read it)
 python pipeline/export_web.py out/terrain web/public/data
 python pipeline/osm_water.py web/public/data --terrain out/terrain
