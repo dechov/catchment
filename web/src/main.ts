@@ -14,6 +14,7 @@ import { buildDemand, storage, waterUse } from "./demand";
 import { Catchments, catchGLSL, CatchInfo } from "./catchments";
 import { FlowParticles, buildPeaks, waterTableGrid } from "./flowfx";
 import { EPISODES, demandChart } from "./episodes";
+import { DISPLACED } from "./displaced";
 import {
   Reservoir, Aqueduct, Dam, Event, fillFraction, damProgress, damProgressFromYear, lineState,
   ERAS, SYSTEM_COLORS,
@@ -483,11 +484,15 @@ async function main() {
   const resLabels = data.reservoirs.map((r) => {
     const div = document.createElement("div");
     div.className = "label"; div.textContent = r.name.replace(" Reservoir", "");
+    // the communities it took, under its name, when close enough to read
+    const dp = DISPLACED[r.name];
+    const sub = dp ? document.createElement("div") : null;
+    if (sub && dp) { sub.className = "displaced"; div.appendChild(sub); }
     const o = new CSS2DObject(div);
     const [x, z] = frame.xz(r.lon, r.lat);
     o.position.set(x, yOf(Math.max(r.water_level_m, region.at(r.lon, r.lat))) + 0.4, z);
     scene.add(o);
-    return { r, div };
+    return { r, div, sub, dp };
   });
 
   // ---- views ---------------------------------------------------------------------------
@@ -647,10 +652,15 @@ async function main() {
         mat.opacity = (st === "retired" ? 0.55 : 1) * (isX ? (underground ? 0.9 : 0.6) : 1);
       }
     }
-    for (const { r, div } of resLabels) {
+    const camNear = camera.position.distanceTo(controls.target) < 90;
+    for (const { r, div, sub, dp } of resLabels) {
       const f2 = fillFraction(r, t), building = damProgress(r, t) > 0 && f2 === 0 && t < (r.in_service ?? 9999);
       div.style.opacity = f2 > 0 || building ? "1" : "0";
       div.classList.toggle("building", building);
+      if (sub && dp) {
+        sub.style.display = camNear && (f2 > 0 || building) ? "block" : "none";
+        sub.textContent = `${f2 > 0 ? "Drowned or moved" : "Being cleared"}: ${dp.places}${dp.note ? ` (${dp.note})` : ""}`;
+      }
     }
     // captions: events from the last 6 years, newest first
     const recent = data.events.filter((e) => e.year <= t && e.year > t - 6).slice(-5).reverse();
