@@ -458,6 +458,38 @@
    "dam": null
   },
   {
+   "id": "old-kensico",
+   "kind": "reservoir",
+   "name": "Kensico Reservoir (1885)",
+   "system": "croton",
+   "lon": -73.762,
+   "lat": 41.082,
+   "spillway_elev_m": 70.1,
+   "construction_start": 1881,
+   "fill_start": 1885,
+   "fill_end": null,
+   "in_service": 1885,
+   "retired": 1915,
+   "dam_nid_id": null,
+   "dam_height_ft": null,
+   "dam_length_ft": null,
+   "approx": [
+    "construction_start"
+   ],
+   "source": "https://en.wikipedia.org/wiki/Kensico_Reservoir",
+   "note": "Bronx River dammed for the Croton system; level 230 ft from the 1893 USGS sheet; drowned by the new Kensico Reservoir",
+   "drowned_by": "kensico",
+   "dam": {
+    "name": "Kensico Dam (1885)",
+    "lon": -73.76985,
+    "lat": 41.07275,
+    "height_ft": 40,
+    "length_ft": 600,
+    "type": "Masonry",
+    "approx": true
+   }
+  },
+  {
    "id": "hillview",
    "kind": "reservoir",
    "name": "Hillview Reservoir",
@@ -918,6 +950,30 @@
    "approx": true
   },
   {
+   "year": 1881,
+   "feature": "old-kensico",
+   "type": "construction_start",
+   "label": "Kensico Reservoir (1885): construction begins",
+   "system": "croton",
+   "approx": true
+  },
+  {
+   "year": 1885,
+   "feature": "old-kensico",
+   "type": "in_service",
+   "label": "Kensico Reservoir (1885): in service",
+   "system": "croton",
+   "approx": false
+  },
+  {
+   "year": 1885,
+   "feature": "old-kensico",
+   "type": "fill_start",
+   "label": "Kensico Reservoir (1885): starts filling",
+   "system": "croton",
+   "approx": false
+  },
+  {
    "year": 1885,
    "feature": "new-croton-aqueduct",
    "type": "construction_start",
@@ -1148,6 +1204,14 @@
    "label": "Hillview Reservoir: starts filling",
    "system": "catskill",
    "approx": true
+  },
+  {
+   "year": 1915,
+   "feature": "old-kensico",
+   "type": "retired",
+   "label": "Kensico Reservoir (1885): retired",
+   "system": "croton",
+   "approx": false
   },
   {
    "year": 1915,

@@ -16,7 +16,7 @@ import json, os, sys, urllib.parse, urllib.request
 # 1902 Tarrytown sheet shows New Croton Reservoir in blue).
 VALLEYS = {
     "new-croton": ((-73.876, 41.200, -73.713, 41.266), 1905, 1899),
-    "kensico": ((-73.790, 41.052, -73.703, 41.140), 1915),
+    "kensico": ((-73.790, 41.052, -73.703, 41.140), 1915, 1895),   # 1899+ editions print the planned reservoir
     "schoharie": ((-74.471, 42.321, -74.417, 42.407), 1924),
     "rondout": ((-74.505, 41.784, -74.408, 41.855), 1950),
     "neversink": ((-74.690, 41.805, -74.623, 41.891), 1953),

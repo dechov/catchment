@@ -206,13 +206,20 @@ async function main() {
             c = mix(c, LAKE, smoothstep(0.3, 0.6, l.r));
             c = mix(c, WATER * 0.85, smoothstep(0.35, 0.65, l.b));
           }
-          int id = waterId(vW);
-          if (id != ownId) c = applyWater(c, id, vW);
           vec3 map = texture2D(topo, vUv).rgb;
           float has = step(0.02, map.r + map.g + map.b);   // outside the sheets' neatlines
           // feather the map out toward the patch edges so it doesn't read as a pasted card
           float edge = smoothstep(0.0, 0.06, min(min(vUv.x, 1.0 - vUv.x), min(vUv.y, 1.0 - vUv.y)));
           c = mix(c, map * 1.05, topoMix * has * edge * 0.85);
+          // other reservoirs in the patch (older or neighbouring ones, the city's), drawn over the
+          // map while they hold water, so a map printed after one was removed can't hide it
+          int id = waterId(vW);
+          // (this valley's own reservoir too, outside the rebuilt footprint: the patch's border band)
+          if ((id != ownId || vIn < 0.5) && id > 0 && id < ${MAX_RES}) {
+            float f = 0.0;
+            for (int k = 0; k < ${MAX_RES}; k++) if (k == id) f = fill[k];
+            c = mix(c, WATER, f * smoothstep(0.35, 0.65, texture2D(resCov, regionUv(vW)).g));
+          }
           c = light(c, vN);
           float fog = smoothstep(fogNear, fogFar, vDepth);
           gl_FragColor = vec4(mix(c, fogColor, fog), alpha);
@@ -248,7 +255,8 @@ async function main() {
       }));
       m.position.set((b.x + b.z) / 2, yOf(o.level_m) + 0.002, (b.y + b.w) / 2);
       scene.add(m);
-      return { res: data.reservoirs.find((r) => r.id === o.reservoir_id)!, u: ou };
+      // reservoir_id -1: a natural lake (Rye Pond), there until this valley's reservoir drowns it
+      return { res: data.reservoirs.find((r) => r.id === o.reservoir_id), u: ou };
     });
     // the city patch has no reservoir of its own (reservoir_id -1): a stand-in that never fills
     const res: Reservoir = data.reservoirs.find((r) => r.id === v.reservoir_id) ?? {
@@ -486,7 +494,7 @@ async function main() {
       vv.u.topoMix.value = mapsOn * (1 - Math.min(1, Math.max(0, (t - vv.fadeFrom) / (vv.fadeTo - vv.fadeFrom))));
       vv.water.position.y = yOf(vv.bed + (vv.v.water_level_m - vv.bed) * Math.sqrt(f)) + 0.002;
       vv.wU.alpha.value = f > 0 ? 1 : 0;
-      for (const ol of vv.oldLakes) ol.u.alpha.value = fillFraction(ol.res, t) > 0 ? 1 : 0;
+      for (const ol of vv.oldLakes) ol.u.alpha.value = (ol.res ? fillFraction(ol.res, t) > 0 : f < 0.5) ? 1 : 0;
       vv.oldRiver.visible = f < 0.999;
     }
     for (const { d, m } of damMeshes) {

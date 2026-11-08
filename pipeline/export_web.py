@@ -180,6 +180,8 @@ for vid in VALLEYS:
     lvl = pm["water_level_m"] if pm["water_level_m"] is not None else -1e9
     water_m = (np.asarray(mask_img) > 127) & (np.abs(now_s - lvl) < 1.0)
     water_m = ndimage.binary_opening(water_m, iterations=1)
+    if os.path.exists(f"{tdir}/{vid}_water_surface.png"):   # the surface valley.py found (with OSM outlines)
+        water_m = np.asarray(Image.open(f"{tdir}/{vid}_water_surface.png").resize((vw, vh), Image.BILINEAR)) > 127
     Image.fromarray((water_m * 255).astype(np.uint8)).save(f"{out}/{vid}_water.png", optimize=True)
     dam_h = np.where((np.asarray(mask_img) > 127) & (now_s > lvl + 1), np.clip(now_s - pre_s, 0, 255), 0)
     Image.fromarray(np.round(dam_h).astype(np.uint8)).save(f"{out}/{vid}_dam.png", optimize=True)
@@ -193,7 +195,8 @@ for vid in VALLEYS:
     for ol in pm.get("old_lakes", []):
         Image.open(f"{tdir}/{ol['file']}").resize((vw, vh), Image.BILINEAR).save(f"{out}/{ol['file']}")
         old.append(dict(file=ol["file"], level_m=ol["level_m"], name=ol["name"],
-                        reservoir_id=next(r["id"] for r in res_out if r["key"] == ol["reservoir"])))
+                        # -1: a natural lake, there until the reservoir drowns it
+                        reservoir_id=next((r["id"] for r in res_out if r["key"] == ol["reservoir"]), -1)))
     # the rivers as they ran before the reservoir (traced from the old maps), drawn until it floods
     tp = f"{ROOT}/data/thalwegs/{vid}.geojson" if vid != "ashokan" else f"{ROOT}/data/ashokan_thalwegs.geojson"
     old_rivers = [f["geometry"]["coordinates"] for f in json.load(open(tp))["features"]] if os.path.exists(tp) else []

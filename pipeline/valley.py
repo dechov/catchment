@@ -97,6 +97,26 @@ water = np.abs(elev - level) < 0.5
 lab, n = ndimage.label(water)
 sizes = ndimage.sum(water, lab, range(1, n + 1))
 mask = lab == (int(np.argmax(sizes)) + 1)
+# Today's terrain can hold one reservoir at two slightly different heights (surveys stitched
+# together: Rondout's north arm), so add the OpenStreetMap outline(s) that overlap it.
+from PIL import ImageDraw
+osm_img = Image.new("L", (W, H)); dr_ = ImageDraw.Draw(osm_img)
+for e in json.load(open(f"{ROOT}/data/osm/lakes.json"))["elements"] + json.load(open(f"{ROOT}/data/osm/lake_relations.json"))["elements"]:
+    rings = [e["geometry"]] if e["type"] == "way" and e.get("geometry") else \
+        [m["geometry"] for m in e.get("members", []) if m.get("role") == "outer" and m.get("geometry")] if e["type"] == "relation" else []
+    for ring in rings:
+        pts = [to_px(g["lon"], g["lat"]) for g in ring]
+        if len(pts) < 4 or max(x for x, _ in pts) < 0 or min(x for x, _ in pts) > W or max(y for _, y in pts) < 0 or min(y for _, y in pts) > H:
+            continue
+        one = Image.new("L", (W, H)); ImageDraw.Draw(one).polygon(pts, fill=1)
+        o = np.asarray(one) > 0
+        if o.sum() and (o & mask).sum() / o.sum() > 0.5:
+            dr_.polygon(pts, fill=255)
+osm_m = np.asarray(osm_img) > 0
+if osm_m.sum():
+    print(f"OSM outline adds {(osm_m & ~mask).sum() * mpp * mpp / 1e6:.2f} km2")
+    mask |= osm_m
+water_surface = mask.copy()
 r = max(3, int(120 / mpp))
 yy, xx = np.ogrid[-r:r + 1, -r:r + 1]
 mask = ndimage.binary_closing(mask, structure=(xx ** 2 + yy ** 2 <= r ** 2))
@@ -194,13 +214,27 @@ depth = dmax_local * (1 - (1 - shape) ** 2)
 pre = elev.copy()
 pre[mask] = level - depth[mask]
 pre = np.where(mask, ndimage.gaussian_filter(pre, 2.0), pre)
-if thal:
+if thal and thal["features"]:
     pre, river_px = traced_floor()
 
 # older, smaller lakes the reservoir drowned (Croton Lake behind the 1842 dam): the floor below
 # their level, upstream of their dam, connected to the traced river
 old_lakes = []
 for k, ol in enumerate((thal or {}).get("old_lakes", [])):
+    if "polygon" in ol:
+        # traced outline: the floor is carved below the old lake's level inside it (deepest in the
+        # middle, ~8 m), so the lake sits in a basin even on a synthetic floor
+        img = Image.new("L", (W, H)); from PIL import ImageDraw
+        ImageDraw.Draw(img).polygon([to_px(*c) for c in ol["polygon"]], fill=255)
+        lake = np.asarray(img) > 0
+        dd = ndimage.distance_transform_edt(lake) * mpp
+        carved = ol["level_m"] - 1.0 - 8.0 * np.clip(dd / 120, 0, 1)
+        pre = np.where(lake, np.minimum(pre, carved), pre)
+        pre = np.where(ndimage.binary_dilation(lake, iterations=4) & mask, ndimage.gaussian_filter(pre, 1.5), pre)
+        Image.fromarray((lake * 255).astype(np.uint8)).save(f"{tdir}/{vid}_oldlake{k}.png")
+        old_lakes.append(dict(name=ol["name"], reservoir=ol["reservoir"], level_m=ol["level_m"], file=f"{vid}_oldlake{k}.png",
+                              area_km2=round(lake.sum() * mpp * mpp / 1e6, 2)))
+        print("old lake", ol["name"], old_lakes[-1]["area_km2"], "km2"); continue
     coords = thal["features"][0]["geometry"]["coordinates"]
     v = ol["upstream_of_vertex"]
     (x0, y0), (x1, y1) = to_px(*coords[v - 1]), to_px(*coords[v + 1])
@@ -222,6 +256,7 @@ for k, ol in enumerate((thal or {}).get("old_lakes", [])):
 lo, hi = float(pre.min()), float(pre.max())
 Image.fromarray(np.round((pre - lo) / (hi - lo) * 65535).astype(np.uint16)).save(f"{tdir}/{vid}_predam_height16.png")
 Image.fromarray((mask * 255).astype(np.uint8)).save(f"{tdir}/{vid}_reservoir_mask.png")
+Image.fromarray((water_surface * 255).astype(np.uint8)).save(f"{tdir}/{vid}_water_surface.png")
 pm = dict(meta, name=f"{vid}_predam", elev_min_m=lo, elev_max_m=hi, water_level_m=level,
           max_reconstructed_depth_m=round(level - float(pre[mask].min()), 1), assumed_max_depth_m=round(max_depth, 1),
           method=("traced old river (data/thalwegs) and harmonic fill to the shoreline (pipeline/valley.py)" if thal else
