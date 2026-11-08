@@ -221,6 +221,13 @@ pre = np.where(mask, ndimage.gaussian_filter(pre, 2.0), pre)
 if thal and thal["features"]:
     pre, river_px = traced_floor()
 
+# The floor must meet the ground around the footprint. Where the footprint's edge runs up a
+# slope (an outline a little too generous, or the closing that smooths it), a floor made from the
+# water level alone would stand as a wall below that ground, so near the edge it falls away from
+# the outside ground no steeper than 1 in 2.
+d_in, (iy, ix) = ndimage.distance_transform_edt(mask, return_indices=True)
+pre = np.where(mask, np.maximum(pre, elev[iy, ix] - 0.5 * d_in * mpp), pre)
+
 # older, smaller lakes the reservoir drowned (Croton Lake behind the 1842 dam): the floor below
 # their level, upstream of their dam, connected to the traced river
 old_lakes = []
@@ -230,11 +237,19 @@ for k, ol in enumerate((thal or {}).get("old_lakes", [])):
         # middle, ~8 m), so the lake sits in a basin even on a synthetic floor
         img = Image.new("L", (W, H)); from PIL import ImageDraw
         ImageDraw.Draw(img).polygon([to_px(*c) for c in ol["polygon"]], fill=255)
-        lake = np.asarray(img) > 0
+        lake = (np.asarray(img) > 0) & mask   # outside the footprint the ground is today's: leave it
         dd = ndimage.distance_transform_edt(lake) * mpp
         carved = ol["level_m"] - 1.0 - 8.0 * np.clip(dd / 120, 0, 1)
         pre = np.where(lake, np.minimum(pre, carved), pre)
+        # and a bank rising from it (at most 1 in 4), so a traced outline that strays onto a
+        # slope makes a shore, not a cut wall
+        do = ndimage.distance_transform_edt(~lake) * mpp
+        pre = np.where(mask & ~lake, np.minimum(pre, ol["level_m"] + 0.25 * do), pre)
         pre = np.where(ndimage.binary_dilation(lake, iterations=4) & mask, ndimage.gaussian_filter(pre, 1.5), pre)
+        # the traced outline can overrun the footprint's edge: keep the edge's slope limit there,
+        # and the lake to where the ground lies below its level
+        pre = np.where(mask, np.maximum(pre, elev[iy, ix] - 0.5 * d_in * mpp), pre)
+        lake &= pre < ol["level_m"]
         Image.fromarray((lake * 255).astype(np.uint8)).save(f"{tdir}/{vid}_oldlake{k}.png")
         old_lakes.append(dict(name=ol["name"], reservoir=ol["reservoir"], level_m=ol["level_m"], file=f"{vid}_oldlake{k}.png",
                               area_km2=round(lake.sum() * mpp * mpp / 1e6, 2)))
@@ -256,6 +271,19 @@ for k, ol in enumerate((thal or {}).get("old_lakes", [])):
     old_lakes.append(dict(name=ol["name"], reservoir=ol["reservoir"], level_m=ol["level_m"], file=f"{vid}_oldlake{k}.png",
                           area_km2=round(lake.sum() * mpp * mpp / 1e6, 2)))
     print("old lake", ol["name"], old_lakes[-1]["area_km2"], "km2")
+
+# No walls: inside the footprint the rebuilt ground may not rise or drop more steeply than 0.7
+# (35 deg) from any neighbour, including the real ground around it. Cells are raised or lowered
+# until that holds, which removes the cut edges a crude outline or carving leaves and keeps everything else.
+STEP = 0.7 * mpp
+for _ in range(400):
+    lifted = np.where(mask, np.maximum(pre, ndimage.grey_dilation(pre, size=(3, 3)) - STEP), pre)
+    lifted = np.where(mask, np.minimum(lifted, ndimage.grey_erosion(lifted, size=(3, 3)) + STEP), lifted)   # and no ledges
+    if np.abs(lifted - pre).max() < 0.05: print("slope limit converged after", _, "passes"); break
+    pre = lifted
+for ol_, ld in zip(old_lakes, range(len(old_lakes))):   # the old lakes: only where still below their level
+    f = f"{tdir}/{ol_['file']}"
+    Image.fromarray(((np.asarray(Image.open(f)) > 0) & (pre < ol_["level_m"])).astype(np.uint8) * 255).save(f)
 
 lo, hi = float(pre.min()), float(pre.max())
 Image.fromarray(np.round((pre - lo) / (hi - lo) * 65535).astype(np.uint16)).save(f"{tdir}/{vid}_predam_height16.png")

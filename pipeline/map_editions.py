@@ -6,7 +6,8 @@ latest sheet printed in that window (1:24,000, 1:31,680 or 1:62,500). Windows be
 map cutoff (old_maps.VALLEYS) are "pre" editions, shown before the reservoir; windows after it
 are "post" editions, shown once it holds water, so the patch is never left as bare terrain. A
 quadrangle with no sheet in a window keeps the sheet of the previous window of the same phase,
-so pre-reservoir ground is never filled in with a map of the reservoir or the other way round.
+(else the next one's), so pre-reservoir ground is never filled in with a map of the reservoir or
+the other way round.
 
 Writes <terrain_dir>/<area>_topo_e<i>.png and <terrain_dir>/<area>_editions.json, downloading
 sheets into <map_dir>/<area>/.
@@ -34,6 +35,7 @@ EDITIONS = {
     "city": [(0, 1892), (1893, 1901), (1930, 1950), (1951, 1970), (1971, 2010)],
 }
 FILL = {"ashokan": (1912, 1912)}   # areas not in old_maps.VALLEYS: (fill start, map cutoff)
+NO_RESERVOIR = {"city"}   # one phase: any edition may lend a sheet to another
 
 
 def composite(sheets, meta, folder):
@@ -51,7 +53,7 @@ def composite(sheets, meta, folder):
     lon_px = meta["west"] + (np.arange(W) + 0.5) / W * (meta["east"] - meta["west"])
     lat_px = np.degrees(np.arctan(np.sinh(np.pi * (1 - 2 * (ty(meta["north"]) + np.arange(H) + 0.5) / N))))
     tex = np.zeros((3, H, W), np.uint8)
-    for s in sorted(sheets, key=lambda s: -SCALE_RANK[s["scale"]]):   # coarse first
+    for s in sorted(sheets, key=lambda s: (not s.get("lent"), -SCALE_RANK[s["scale"]])):   # lent, then coarse first
         qw, qs, qe, qn = s["neatline"]
         with rasterio.open(f"{folder}/{s['file']}") as r:
             tmp = np.zeros_like(tex)
@@ -89,6 +91,13 @@ def drop_covered(sheets):
     return keep
 
 
+def covered(nl, quads):
+    """The share of a neatline's box that the given quadrangle boxes cover (sampled)."""
+    w, so, e, n = nl
+    pts = [(w + (e - w) * (i + .5) / 12, so + (n - so) * (j + .5) / 12) for i in range(12) for j in range(12)]
+    return sum(any(q[0] <= x <= q[2] and q[1] <= y <= q[3] for q in quads) for x, y in pts) / len(pts)
+
+
 def main():
     tdir, mapdir = sys.argv[1:3]
     only = sys.argv[sys.argv.index("--only") + 1].split(",") if "--only" in sys.argv else list(EDITIONS)
@@ -100,15 +109,29 @@ def main():
         else:
             bbox = (meta["west"], meta["south"], meta["east"], meta["north"])
             fill, cutoff = FILL[vid]
+        if vid in NO_RESERVOIR:
+            cutoff = 9999
         items = query(bbox)
         folder = f"{mapdir}/{vid}"; os.makedirs(folder, exist_ok=True)
+        wins = EDITIONS[vid]
+        owns = [pick(items, lo, hi) for lo, hi in wins]
+        phases = ["pre" if hi < cutoff else "post" for lo, hi in wins]
         out, carried = [], {"pre": {}, "post": {}}
-        for i, (lo, hi) in enumerate(EDITIONS[vid]):
-            phase = "pre" if hi < cutoff else "post"
-            own = pick(items, lo, hi)
-            quads = {**carried[phase], **own}
-            carried[phase] = quads
-            sheets = drop_covered(list(quads.values()))
+        for i, (lo, hi) in enumerate(wins):
+            phase, own = phases[i], owns[i]
+            # a quadrangle with no sheet in this window: the latest earlier one of the same phase,
+            # else the earliest later one of the same phase
+            here = {**carried[phase], **own}
+            carried[phase] = here
+            # a later sheet only fills ground no sheet of this edition covers (the nearest later
+            # edition first), and is drawn under them
+            lent, have = [], list(here)
+            for j in range(i + 1, len(wins)):
+                if phases[j] != phase: continue
+                for k, q in sorted(owns[j].items(), key=lambda kq: SCALE_RANK[kq[1]["scale"]], reverse=True):
+                    if covered(q["neatline"], have) < 0.5:
+                        lent.append(q); have.append(k)
+            sheets = [dict(s, lent=True) for s in lent] + drop_covered(list(here.values()))
             for s in sheets:
                 s["file"] = urllib.parse.unquote(s["url"].rsplit("/", 1)[1])
                 if not os.path.exists(f"{folder}/{s['file']}"):
