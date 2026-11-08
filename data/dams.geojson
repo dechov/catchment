@@ -1,0 +1,582 @@
+{
+ "type": "FeatureCollection",
+ "source": "USACE National Inventory of Dams (https://nid.sec.usace.army.mil/)",
+ "features": [
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -73.7583333333333,
+     41.3788888888888
+    ]
+   },
+   "properties": {
+    "name": "Kirk Lake Dam",
+    "other_names": null,
+    "nid_id": "NY00682",
+    "county": "Putnam",
+    "river": "Tr-Muscoot River",
+    "type": "Earth",
+    "year_completed": 1871,
+    "height_ft": 28.0,
+    "length_ft": 225.0,
+    "surface_area_acres": 124.0,
+    "normal_storage_acre_ft": 1705.0,
+    "side_of_hudson": "east"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -73.7385308,
+     41.450395
+    ]
+   },
+   "properties": {
+    "name": "Boyds Corner Dam",
+    "other_names": null,
+    "nid_id": "NY00066",
+    "county": "Putnam",
+    "river": "West Branch Croton River",
+    "type": "Earth",
+    "year_completed": 1872,
+    "height_ft": 78.0,
+    "length_ft": 670.0,
+    "surface_area_acres": 297.0,
+    "normal_storage_acre_ft": 5260.0,
+    "side_of_hudson": "east"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -73.6491666666666,
+     41.39
+    ]
+   },
+   "properties": {
+    "name": "Middle Branch Dam",
+    "other_names": null,
+    "nid_id": "NY00034",
+    "county": "Putnam",
+    "river": "Middle Branch Croton River",
+    "type": "Earth",
+    "year_completed": 1878,
+    "height_ft": 95.0,
+    "length_ft": 615.0,
+    "surface_area_acres": 428.0,
+    "normal_storage_acre_ft": 12300.0,
+    "side_of_hudson": "east"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -73.5919444444444,
+     41.3972222222222
+    ]
+   },
+   "properties": {
+    "name": "Sodom Dam",
+    "other_names": "East Branch Reservoir",
+    "nid_id": "NY00031",
+    "county": "Putnam",
+    "river": "East Branch Croton River",
+    "type": "Earth",
+    "year_completed": 1892,
+    "height_ft": 78.0,
+    "length_ft": 1600.0,
+    "surface_area_acres": 491.0,
+    "normal_storage_acre_ft": 16100.0,
+    "side_of_hudson": "east"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -73.5902777777777,
+     41.4052777777777
+    ]
+   },
+   "properties": {
+    "name": "Bog Brook Dam #1",
+    "other_names": null,
+    "nid_id": "NY00068",
+    "county": "Putnam",
+    "river": "Tr-E Branch Croton River",
+    "type": "Earth",
+    "year_completed": 1893,
+    "height_ft": 47.0,
+    "length_ft": 1340.0,
+    "surface_area_acres": 399.0,
+    "normal_storage_acre_ft": 13500.0,
+    "side_of_hudson": "east"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -73.6483333333333,
+     41.3261111111111
+    ]
+   },
+   "properties": {
+    "name": "Titicus Dam",
+    "other_names": null,
+    "nid_id": "NY00050",
+    "county": "Westchester",
+    "river": "Titicus River",
+    "type": "Earth",
+    "year_completed": 1895,
+    "height_ft": 109.0,
+    "length_ft": 1520.0,
+    "surface_area_acres": 681.0,
+    "normal_storage_acre_ft": 22000.0,
+    "side_of_hudson": "east"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -73.7063888888888,
+     41.4
+    ]
+   },
+   "properties": {
+    "name": "Carmel Auxiliary Dike",
+    "other_names": "West Branch Dam",
+    "nid_id": "NY00030",
+    "county": "Putnam",
+    "river": "West Branch Croton River",
+    "type": "Earth",
+    "year_completed": 1895,
+    "height_ft": 64.0,
+    "length_ft": 1795.0,
+    "surface_area_acres": 1083.0,
+    "normal_storage_acre_ft": 30900.0,
+    "side_of_hudson": "east"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -73.6956884,
+     41.4119451
+    ]
+   },
+   "properties": {
+    "name": "West Branch Dam",
+    "other_names": "Carmel Dam",
+    "nid_id": "NY00029",
+    "county": "Putnam",
+    "river": "West Branch Croton River",
+    "type": "Earth",
+    "year_completed": 1895,
+    "height_ft": 85.0,
+    "length_ft": 1795.0,
+    "surface_area_acres": 1083.0,
+    "normal_storage_acre_ft": 30900.0,
+    "side_of_hudson": "east"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -73.7544444444444,
+     41.2888888888888
+    ]
+   },
+   "properties": {
+    "name": "Amawalk Dam",
+    "other_names": null,
+    "nid_id": "NY00045",
+    "county": "Westchester",
+    "river": "Muscoot River",
+    "type": "Earth",
+    "year_completed": 1897,
+    "height_ft": 85.0,
+    "length_ft": 1270.0,
+    "surface_area_acres": 606.0,
+    "normal_storage_acre_ft": 20543.0,
+    "side_of_hudson": "east"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -73.7091666666666,
+     41.2611111111111
+    ]
+   },
+   "properties": {
+    "name": "Muscoot Dam",
+    "other_names": null,
+    "nid_id": "NY00061",
+    "county": "Westchester",
+    "river": "Croton River",
+    "type": "Masonry",
+    "year_completed": 1906,
+    "height_ft": 57.0,
+    "length_ft": 1130.0,
+    "surface_area_acres": 1166.0,
+    "normal_storage_acre_ft": 10750.0,
+    "side_of_hudson": "east"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -73.8566666666666,
+     41.2266666666666
+    ]
+   },
+   "properties": {
+    "name": "New Croton Reservoir Dam",
+    "other_names": null,
+    "nid_id": "NY00046",
+    "county": "Westchester",
+    "river": "Croton River",
+    "type": "Concrete",
+    "year_completed": 1906,
+    "height_ft": 174.0,
+    "length_ft": 1218.0,
+    "surface_area_acres": 2260.0,
+    "normal_storage_acre_ft": 72900.0,
+    "side_of_hudson": "east"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -73.6655555555555,
+     41.2655555555555
+    ]
+   },
+   "properties": {
+    "name": "Cross River Dam",
+    "other_names": null,
+    "nid_id": "NY00038",
+    "county": "Westchester",
+    "river": "Cross River",
+    "type": "Concrete",
+    "year_completed": 1908,
+    "height_ft": 126.0,
+    "length_ft": 1060.0,
+    "surface_area_acres": 770.0,
+    "normal_storage_acre_ft": 32000.0,
+    "side_of_hudson": "east"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -73.6655555555555,
+     41.3577777777777
+    ]
+   },
+   "properties": {
+    "name": "Croton Falls Dam",
+    "other_names": null,
+    "nid_id": "NY00039",
+    "county": "Putnam",
+    "river": "West Branch Croton River",
+    "type": "Masonry",
+    "year_completed": 1910,
+    "height_ft": 113.0,
+    "length_ft": 1070.0,
+    "surface_area_acres": 1063.0,
+    "normal_storage_acre_ft": 43500.0,
+    "side_of_hudson": "east"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -73.6377777777777,
+     41.3744444444444
+    ]
+   },
+   "properties": {
+    "name": "Diverting Reservoir Dam",
+    "other_names": null,
+    "nid_id": "NY00056",
+    "county": "Putnam",
+    "river": "East Branch Croton River",
+    "type": "Earth",
+    "year_completed": 1911,
+    "height_ft": 54.0,
+    "length_ft": 1190.0,
+    "surface_area_acres": 154.0,
+    "normal_storage_acre_ft": 2700.0,
+    "side_of_hudson": "east"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -73.7661111111111,
+     41.0733333333333
+    ]
+   },
+   "properties": {
+    "name": "Kensico Dam",
+    "other_names": null,
+    "nid_id": "NY00051",
+    "county": "Westchester",
+    "river": "Bronx River",
+    "type": "Concrete",
+    "year_completed": 1916,
+    "height_ft": 168.0,
+    "length_ft": 1843.0,
+    "surface_area_acres": 2218.0,
+    "normal_storage_acre_ft": 93780.0,
+    "side_of_hudson": "east"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -74.2191666666666,
+     41.9380555555555
+    ]
+   },
+   "properties": {
+    "name": "Ashokan Dam",
+    "other_names": "Olive Bridge Dam",
+    "nid_id": "NY00041",
+    "county": "Ulster",
+    "river": "Esopus Creek",
+    "type": "Earth",
+    "year_completed": 1916,
+    "height_ft": 213.0,
+    "length_ft": 4650.0,
+    "surface_area_acres": 7923.0,
+    "normal_storage_acre_ft": 392498.0,
+    "side_of_hudson": "west"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -74.4511111111111,
+     42.3911111111111
+    ]
+   },
+   "properties": {
+    "name": "Gilboa Dam",
+    "other_names": "Schoharie Reservoir",
+    "nid_id": "NY00176",
+    "county": "Schoharie",
+    "river": "Schoharie Creek",
+    "type": "Concrete",
+    "year_completed": 1926,
+    "height_ft": 183.0,
+    "length_ft": 2273.0,
+    "surface_area_acres": 1159.0,
+    "normal_storage_acre_ft": 63922.0,
+    "side_of_hudson": "west"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -73.5925,
+     41.4125
+    ]
+   },
+   "properties": {
+    "name": "Bog Brook Dam #2",
+    "other_names": null,
+    "nid_id": "NY00069",
+    "county": "Putnam",
+    "river": "Tr-East Branch Croton River",
+    "type": "Earth",
+    "year_completed": 1936,
+    "height_ft": 24.0,
+    "length_ft": 1956.0,
+    "surface_area_acres": 399.0,
+    "normal_storage_acre_ft": 13500.0,
+    "side_of_hudson": "east"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -74.4327777777777,
+     41.7991666666666
+    ]
+   },
+   "properties": {
+    "name": "Merriman Dam",
+    "other_names": "Rondout Reservoir",
+    "nid_id": "NY00074",
+    "county": "Ulster",
+    "river": "Roundout Creek",
+    "type": "Earth",
+    "year_completed": 1945,
+    "height_ft": 195.0,
+    "length_ft": 2400.0,
+    "surface_area_acres": 2099.0,
+    "normal_storage_acre_ft": 153633.0,
+    "side_of_hudson": "west"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -74.6422222222222,
+     41.8219444444444
+    ]
+   },
+   "properties": {
+    "name": "Neversink Reservoir Dam",
+    "other_names": null,
+    "nid_id": "NY00348",
+    "county": "Sullivan",
+    "river": "Neversink River",
+    "type": "Earth",
+    "year_completed": 1953,
+    "height_ft": 190.0,
+    "length_ft": 3000.0,
+    "surface_area_acres": 1472.0,
+    "normal_storage_acre_ft": 108872.0,
+    "side_of_hudson": "west"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -74.9661111111111,
+     42.0741666666666
+    ]
+   },
+   "properties": {
+    "name": "Downsville Dam",
+    "other_names": "Pepacton Reservoir",
+    "nid_id": "NY00342",
+    "county": "Delaware",
+    "river": "East Branch Delaware River",
+    "type": "Earth",
+    "year_completed": 1954,
+    "height_ft": 204.0,
+    "length_ft": 2400.0,
+    "surface_area_acres": 5763.0,
+    "normal_storage_acre_ft": 420280.0,
+    "side_of_hudson": "west"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -73.7505555555555,
+     41.4805555555555
+    ]
+   },
+   "properties": {
+    "name": "Seven Hills Realty CO INC Dam",
+    "other_names": null,
+    "nid_id": "NY01143",
+    "county": "Putnam",
+    "river": "Tr-W Branch Croton River",
+    "type": "Earth",
+    "year_completed": 1957,
+    "height_ft": 15.0,
+    "length_ft": 345.0,
+    "surface_area_acres": 56.0,
+    "normal_storage_acre_ft": 380.0,
+    "side_of_hudson": "east"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.375,
+     42.0636111111111
+    ]
+   },
+   "properties": {
+    "name": "Cannonsville Dam",
+    "other_names": null,
+    "nid_id": "NY00542",
+    "county": "Delaware",
+    "river": "West Branch Delaware River",
+    "type": "Earth",
+    "year_completed": 1964,
+    "height_ft": 175.0,
+    "length_ft": 2800.0,
+    "surface_area_acres": 4800.0,
+    "normal_storage_acre_ft": 300999.0,
+    "side_of_hudson": "west"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -73.6783333333333,
+     41.3933333333333
+    ]
+   },
+   "properties": {
+    "name": "Lake Gilead Dam",
+    "other_names": null,
+    "nid_id": "NY01505",
+    "county": "Putnam",
+    "river": "Tr-W Branch Croton River",
+    "type": "Earth",
+    "year_completed": null,
+    "height_ft": 15.0,
+    "length_ft": 450.0,
+    "surface_area_acres": 118.0,
+    "normal_storage_acre_ft": 1165.0,
+    "side_of_hudson": "east"
+   }
+  }
+ ]
+}
