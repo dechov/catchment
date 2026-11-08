@@ -65,9 +65,31 @@ button.on { background: rgba(255,255,255,0.26); border-color: rgba(255,255,255,0
 #loading { position: fixed; inset: 0; display: grid; place-items: center; background: var(--bg);
   font-size: 18px; color: var(--muted); transition: opacity 0.5s; }
 
-@media (max-width: 640px) {
+#legendBtn { display: none; }
+#app canvas { touch-action: none; }
+
+/* phones: title and views share the top as one scrolling row, the legend opens as a sheet,
+   captions sit just above the time bar, and everything clears the notch and home bar */
+@media (max-width: 700px) {
+  html, body { font-size: 13px; }
+  #title { top: max(8px, env(safe-area-inset-top)); left: 8px; padding: 6px 10px; }
+  #title h1 { font-size: 16px; }
   #title p { display: none; }
-  #legend { display: none; }
-  #captions { top: auto; bottom: 92px; }
-  #year { font-size: 20px; width: 54px; }
+  #views { top: calc(max(8px, env(safe-area-inset-top)) + 44px); left: 8px; right: 8px; flex-wrap: nowrap;
+    justify-content: flex-start; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  #views::-webkit-scrollbar { display: none; }
+  #views button { flex: none; padding: 8px 12px; }
+  #legendBtn { display: inline-block; }
+  #legend { display: none; right: 8px; left: 8px; bottom: calc(max(8px, env(safe-area-inset-bottom)) + 76px); font-size: 13px; }
+  #legend.open { display: block; }
+  body.legend-open #captions { display: none; }
+  #legend small { max-width: none; }
+  #legend label { padding: 6px 0; }
+  #captions { top: auto; left: 8px; width: calc(100vw - 16px); bottom: calc(max(8px, env(safe-area-inset-bottom)) + 76px); }
+  #captions .cap:nth-child(n+3) { display: none; }
+  #timebar { left: 8px; right: 8px; bottom: max(8px, env(safe-area-inset-bottom)); gap: 8px; padding: 8px 10px; }
+  #play { width: 44px; height: 44px; }
+  #year { font-size: 20px; width: 50px; }
+  #slider { height: 28px; }
+  .label { font-size: 11px; }
 }

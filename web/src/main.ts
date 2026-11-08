@@ -69,7 +69,7 @@ async function main() {
   // ---- renderer, camera, controls ------------------------------------------------------
   const app = document.getElementById("app")!;
   const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
-  renderer.setPixelRatio(Math.min(2, window.devicePixelRatio));
+  renderer.setPixelRatio(Math.min(low ? 1.5 : 2, window.devicePixelRatio));
   (window as any).__ready = false;
   renderer.setSize(innerWidth, innerHeight);
   renderer.setClearColor(0xb9c8d4);
@@ -462,7 +462,9 @@ async function main() {
     const v = at_ && at_.length === 3 && at_.every(Number.isFinite)
       ? { target: at(at_[0], at_[1]), offset: new THREE.Vector3(-0.25, 0.75, 0.75).multiplyScalar(at_[2]) }
       : VIEWS[name] ?? VIEWS.region;
-    const to: [THREE.Vector3, THREE.Vector3] = [v.target.clone(), v.target.clone().add(v.offset)];
+    // a portrait screen is narrow: stand back so the same ground fits across it
+    const fit = camera.aspect < 1.3 ? Math.pow(1.3 / camera.aspect, 0.5) : 1;
+    const to: [THREE.Vector3, THREE.Vector3] = [v.target.clone(), v.target.clone().add(v.offset.clone().multiplyScalar(fit))];
     document.querySelectorAll<HTMLButtonElement>("#views button[data-view]").forEach((b) => b.classList.toggle("on", b.dataset.view === name));
     if (instant) { controls.target.copy(to[0]); camera.position.copy(to[1]); controls.update(); return; }
     flight = { from: [controls.target.clone(), camera.position.clone()], to, t: 0 };
@@ -497,6 +499,13 @@ async function main() {
   }
 
   const oldMaps = document.getElementById("oldmaps") as HTMLInputElement;
+  // phones: the legend is a sheet behind a button
+  const legendBtn = document.getElementById("legendBtn")!, legendEl = document.getElementById("legend")!;
+  legendBtn.addEventListener("click", () => {
+    const open = legendEl.classList.toggle("open");
+    legendBtn.classList.toggle("on", open); legendBtn.setAttribute("aria-expanded", String(open));
+    document.body.classList.toggle("legend-open", open);
+  });
   let lastCapKey = "";
   function applyYear(t: number) {
     yearEl.textContent = String(Math.floor(t));
