@@ -68,6 +68,16 @@ Limits: the valley floor between the creeks is interpolated, not surveyed, so sm
 
 In the scene each valley's dam rises out of the ground, the water climbs from the old floor to today's level, and the old map stays on the ground through construction and fades while the valley floods.
 
+### Also in the scene
+
+- **The old Croton River and Croton Lake.** `data/thalwegs/new-croton.geojson` is the river traced from the 1893–1899 sheets, with elevations anchored at the two dams. `valley.py` builds New Croton's floor from it (as for Ashokan) and finds the 1842 Croton Lake as the floor below its level (49 m) upstream of the Old Croton Dam. The lake appears in 1842 and goes under New Croton in 1905–06. Muscoot, East Branch, Bog Brook and Diverting are in the timeline too.
+- **Dams.** Each dam is built along its crest line from OpenStreetMap (`data/osm/dams.json`), down to the ground without it, with a cross-section by its NID type: a stone gravity wall for masonry and concrete dams, an embankment with riprap and grass for earth dams (`web/src/dams.ts`). They rise during construction.
+- **Sea, Sound and Hudson.** `osm_water.py` floods the sea from OpenStreetMap's coastline (`data/osm/coastline.json`) and adds the tidal Hudson above Yonkers from the flat, near-sea-level ground along its centreline.
+- **Reservoir shores.** Where OpenStreetMap maps a reservoir, its polygon replaces the 28 m outline found in the terrain. The Manhattan reservoirs that are gone are footprints in `data/city_reservoirs.geojson` (Yorkville Receiving and Murray Hill from a Manhattan street-grid model; the Central Park Reservoir from OSM).
+- **The city.** A ~7 m patch over Manhattan, Brooklyn and the Bronx with the 1900 USGS Harlem, Brooklyn, Paterson and Staten Island sheets (`valley.py city`), shown until about 1930.
+
+![Lower Manhattan on the 1900 USGS sheets](docs/scene_lower_manhattan_1880.jpg)
+
 ## Regenerating the data
 
 ```sh
@@ -86,12 +96,12 @@ python pipeline/compare_contours.py out/terrain out/ashokan_contour_check.png
 python pipeline/render_before_after.py out/terrain out/ashokan_before_after.png
 # the other valleys (scans ~250 MB in out/oldmaps)
 python pipeline/old_maps.py out/oldmaps
-for v in new-croton kensico schoharie rondout neversink pepacton cannonsville; do
+for v in new-croton kensico schoharie rondout neversink pepacton cannonsville city; do
   python pipeline/valley.py $v out/terrain out/oldmaps out/tiles
 done
 # web data (scene.json first, then the OpenStreetMap layers, which read it)
 python pipeline/export_web.py out/terrain web/public/data
-python pipeline/osm_water.py web/public/data
+python pipeline/osm_water.py web/public/data --terrain out/terrain
 ```
 
 Terrain outputs (about 90 MB) are not committed.

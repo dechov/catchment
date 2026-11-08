@@ -22,6 +22,8 @@ import json, math, os, subprocess, sys
 import numpy as np
 from PIL import Image
 from scipy import ndimage
+from scipy import sparse
+from scipy.sparse.linalg import spsolve
 import rasterio
 from rasterio.warp import reproject, Resampling
 from rasterio.transform import from_bounds
@@ -34,7 +36,7 @@ W_, S_, E_, N_ = sheets["bbox"]
 FT = 0.3048
 
 tl = {f["id"]: f for f in json.load(open(f"{ROOT}/data/timeline.json"))["features"]}
-res = tl[vid]
+res = tl.get(vid, {})   # an area that isn't a reservoir valley (the city) gets terrain and maps only
 dams = {f["properties"]["nid_id"]: f for f in json.load(open(f"{ROOT}/data/dams.geojson"))["features"]}
 dam = dams.get(res.get("dam_nid_id"))
 # maximum depth: published where known, else ~85% of the dam's height
@@ -73,6 +75,16 @@ for s in sorted(sheets["sheets"], key=lambda s: -{"24000": 0, "31680": 1, "62500
     tex[:, m] = tmp[:, m]
 Image.fromarray(tex.transpose(1, 2, 0)).save(f"{tdir}/{vid}_topo_predam.png")
 
+if not res:
+    Image.fromarray(np.zeros((H, W), np.uint8)).save(f"{tdir}/{vid}_reservoir_mask.png")
+    lo, hi = float(elev.min()), float(elev.max())
+    Image.fromarray(np.round((elev - lo) / (hi - lo) * 65535).astype(np.uint16)).save(f"{tdir}/{vid}_predam_height16.png")
+    json.dump(dict(meta, name=f"{vid}_predam", elev_min_m=lo, elev_max_m=hi, water_level_m=None, synthetic=False, old_lakes=[],
+                   method="modern terrain, old maps only (no reservoir)",
+                   old_maps=[dict(title=s["title"], year=s["year"], url=s["url"]) for s in sheets["sheets"]]),
+              open(f"{tdir}/{vid}_predam_meta.json", "w"), indent=2)
+    print(vid, f"terrain and {len(sheets['sheets'])} maps, {W}x{H} px at {mpp} m"); sys.exit(0)
+
 # --- 3. reservoir mask ----------------------------------------------------------------------
 cx, cy = to_px(res["lon"], res["lat"])
 gy, gx = np.gradient(elev)
@@ -98,7 +110,66 @@ else:  # no dam record: assume the dam sits at the mask's lowest-ground neighbou
     dam_disk = np.zeros((H, W), bool); half = 0
 mask |= dam_disk & (elev > level - 2) & ndimage.binary_dilation(mask, iterations=int(half if dam else 1))
 
-# --- 4. synthetic floor ---------------------------------------------------------------------
+# --- 4. the floor ----------------------------------------------------------------------------
+# With a traced old river (data/thalwegs/<id>.geojson), the floor is a harmonic fill between the
+# shoreline and the river, as for Ashokan. Without one it is synthetic (below).
+thal_path = f"{ROOT}/data/thalwegs/{vid}.geojson"
+thal = json.load(open(thal_path)) if os.path.exists(thal_path) else None
+
+
+def to_fpx(lon, lat): return to_px(lon, lat)
+
+
+SHAPE_POWER = 1.3   # >1: flatter valley floors, steeper sides near the old shoreline
+
+
+def traced_floor():
+    """Burn the traced rivers in (elevations interpolated between anchors), then fill the basin
+    between them and the shoreline: t = 0 on rivers, 1 on the shore, floor = blend shaped so
+    valley bottoms come out flatter than a plain V."""
+    ras = np.zeros((H, W)); hit = np.zeros((H, W), bool)
+    for f in thal["features"]:
+        pts = [to_fpx(*c) for c in f["geometry"]["coordinates"]]
+        cum = [0.0]
+        for i in range(len(pts) - 1): cum.append(cum[-1] + math.dist(pts[i], pts[i + 1]))
+        an = sorted(f["properties"]["anchors"], key=lambda a: a["at"])
+        ad, az = [cum[a["at"]] for a in an], [a["elev_m"] for a in an]
+        for i in range(len(pts) - 1):
+            L = cum[i + 1] - cum[i]
+            for j in range(max(2, int(L * 2)) + 1):
+                u = j / max(2, int(L * 2))
+                x = pts[i][0] + (pts[i + 1][0] - pts[i][0]) * u; y = pts[i][1] + (pts[i + 1][1] - pts[i][1]) * u
+                z = float(np.interp(cum[i] + L * u, ad, az))
+                yi, xi = int(round(y)), int(round(x))
+                sl = (slice(max(0, yi - 2), yi + 3), slice(max(0, xi - 2), xi + 3))
+                ras[sl] = np.where(hit[sl], np.minimum(ras[sl], z), z); hit[sl] = True
+    sp = hit & mask
+    unknown = mask & ~sp
+    idx = -np.ones((H, W), np.int64); idx[unknown] = np.arange(unknown.sum())
+    uy, ux = np.nonzero(unknown)
+    rows, cols, diag = [], [], np.zeros(len(uy))
+    rhs_t, rhs_z = np.zeros(len(uy)), np.zeros(len(uy))
+    for oy, ox in ((0, 1), (0, -1), (1, 0), (-1, 0)):
+        ny, nx = uy + oy, ux + ox
+        ok = (ny >= 0) & (ny < H) & (nx >= 0) & (nx < W)
+        i = np.nonzero(ok)[0]; ny, nx = ny[ok], nx[ok]
+        diag[i] += 1
+        nb = idx[ny, nx]; inner_ = nb >= 0
+        rows += list(i[inner_]); cols += list(nb[inner_])
+        b = ~inner_; st = sp[ny[b], nx[b]]
+        np.add.at(rhs_t, i[b], np.where(st, 0.0, 1.0))
+        np.add.at(rhs_z, i[b], np.where(st, ras[ny[b], nx[b]], level))
+    n = len(uy)
+    A = sparse.csr_matrix(([-1.0] * len(rows) + list(diag), (rows + list(range(n)), cols + list(range(n)))), shape=(n, n))
+    tt = np.clip(spsolve(A, rhs_t), 0, 1)
+    zz = spsolve(A, rhs_z)
+    river_part = np.clip((zz - level * tt) / np.maximum(1 - tt, 1e-6), ras[sp].min(), level)
+    out = elev.copy()
+    out[uy, ux] = river_part + (level - river_part) * tt ** SHAPE_POWER
+    out[sp] = ras[sp]
+    return np.where(mask, ndimage.gaussian_filter(out, 1.0), out), sp
+
+
 inner = mask & ~dam_disk
 dist = ndimage.distance_transform_edt(mask) * mpp           # metres to the shoreline
 # along-valley distance from the dam (geodesic inside the mask), coarse grid for speed
@@ -123,13 +194,39 @@ depth = dmax_local * (1 - (1 - shape) ** 2)
 pre = elev.copy()
 pre[mask] = level - depth[mask]
 pre = np.where(mask, ndimage.gaussian_filter(pre, 2.0), pre)
+if thal:
+    pre, river_px = traced_floor()
+
+# older, smaller lakes the reservoir drowned (Croton Lake behind the 1842 dam): the floor below
+# their level, upstream of their dam, connected to the traced river
+old_lakes = []
+for k, ol in enumerate((thal or {}).get("old_lakes", [])):
+    coords = thal["features"][0]["geometry"]["coordinates"]
+    v = ol["upstream_of_vertex"]
+    (x0, y0), (x1, y1) = to_px(*coords[v - 1]), to_px(*coords[v + 1])
+    dx_, dy_ = x1 - x0, y1 - y0; L = math.hypot(dx_, dy_)
+    px_, py_ = to_px(*ol["dam"])
+    half = 600 / mpp   # a cut across the valley at the dam, so the lake stops there
+    barrier = Image.new("L", (W, H)); from PIL import ImageDraw
+    ImageDraw.Draw(barrier).line([(px_ - dy_ / L * half, py_ + dx_ / L * half), (px_ + dy_ / L * half, py_ - dx_ / L * half)], fill=255, width=5)
+    below = mask & (pre < ol["level_m"]) & (np.asarray(barrier) == 0)
+    lab_, _ = ndimage.label(below)
+    sx, sy = to_px(*coords[min(len(coords) - 1, v + 3)])
+    lid = lab_[int(sy), int(sx)]
+    lake = (lab_ == lid) if lid else np.zeros_like(mask)
+    Image.fromarray((lake * 255).astype(np.uint8)).save(f"{tdir}/{vid}_oldlake{k}.png")
+    old_lakes.append(dict(name=ol["name"], reservoir=ol["reservoir"], level_m=ol["level_m"], file=f"{vid}_oldlake{k}.png",
+                          area_km2=round(lake.sum() * mpp * mpp / 1e6, 2)))
+    print("old lake", ol["name"], old_lakes[-1]["area_km2"], "km2")
 
 lo, hi = float(pre.min()), float(pre.max())
 Image.fromarray(np.round((pre - lo) / (hi - lo) * 65535).astype(np.uint16)).save(f"{tdir}/{vid}_predam_height16.png")
 Image.fromarray((mask * 255).astype(np.uint8)).save(f"{tdir}/{vid}_reservoir_mask.png")
 pm = dict(meta, name=f"{vid}_predam", elev_min_m=lo, elev_max_m=hi, water_level_m=level,
           max_reconstructed_depth_m=round(level - float(pre[mask].min()), 1), assumed_max_depth_m=round(max_depth, 1),
-          method="synthetic valley (pipeline/valley.py): depth from distance to shore, deepest toward the dam",
+          method=("traced old river (data/thalwegs) and harmonic fill to the shoreline (pipeline/valley.py)" if thal else
+                  "synthetic valley (pipeline/valley.py): depth from distance to shore, deepest toward the dam"),
+          synthetic=not thal, old_lakes=old_lakes,
           old_maps=[dict(title=s["title"], year=s["year"], url=s["url"]) for s in sheets["sheets"]])
 json.dump(pm, open(f"{tdir}/{vid}_predam_meta.json", "w"), indent=2)
 print(vid, f"level {level:.1f} m, mask {mask.sum() * mpp * mpp / 1e6:.1f} km2, depth {pm['max_reconstructed_depth_m']} m "

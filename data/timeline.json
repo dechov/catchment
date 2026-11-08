@@ -21,7 +21,9 @@
    "dam_length_ft": null,
    "approx": [],
    "source": "https://en.wikipedia.org/wiki/Croton_Distributing_Reservoir",
-   "note": null
+   "note": null,
+   "drowned_by": null,
+   "dam": null
   },
   {
    "id": "central-park-lower",
@@ -41,7 +43,9 @@
    "dam_length_ft": null,
    "approx": [],
    "source": "https://en.wikipedia.org/wiki/Jacqueline_Kennedy_Onassis_Reservoir",
-   "note": null
+   "note": null,
+   "drowned_by": null,
+   "dam": null
   },
   {
    "id": "central-park-upper",
@@ -61,7 +65,48 @@
    "dam_length_ft": null,
    "approx": [],
    "source": "https://en.wikipedia.org/wiki/Jacqueline_Kennedy_Onassis_Reservoir",
-   "note": null
+   "note": null,
+   "drowned_by": null,
+   "dam": null
+  },
+  {
+   "id": "old-croton",
+   "kind": "reservoir",
+   "name": "Croton Lake (Old Croton Dam)",
+   "system": "croton",
+   "lon": -73.79,
+   "lat": 41.24,
+   "spillway_elev_m": 49.1,
+   "construction_start": 1837,
+   "fill_start": 1842,
+   "fill_end": null,
+   "in_service": 1842,
+   "retired": 1906,
+   "dam_nid_id": null,
+   "dam_height_ft": null,
+   "dam_length_ft": null,
+   "approx": [],
+   "source": "https://en.wikipedia.org/wiki/Old_Croton_Dam",
+   "note": "57 ft masonry dam, 670 ft long; submerged 34 ft under New Croton Reservoir since 1906",
+   "drowned_by": "new-croton",
+   "dam": {
+    "name": "Old Croton Dam",
+    "lon": -73.80056,
+    "lat": 41.23333,
+    "height_ft": 57,
+    "length_ft": 670,
+    "type": "Masonry",
+    "crest": [
+     [
+      -73.800319,
+      41.23423
+     ],
+     [
+      -73.800801,
+      41.23243
+     ]
+    ]
+   }
   },
   {
    "id": "boyds-corner",
@@ -83,7 +128,9 @@
     "in_service"
    ],
    "source": "NID year completed",
-   "note": null
+   "note": null,
+   "drowned_by": null,
+   "dam": null
   },
   {
    "id": "middle-branch",
@@ -105,7 +152,9 @@
     "in_service"
    ],
    "source": "NID year completed",
-   "note": null
+   "note": null,
+   "drowned_by": null,
+   "dam": null
   },
   {
    "id": "west-branch",
@@ -125,7 +174,53 @@
    "dam_length_ft": 1795.0,
    "approx": [],
    "source": "https://en.wikipedia.org/wiki/West_Branch_Reservoir",
-   "note": null
+   "note": null,
+   "drowned_by": null,
+   "dam": null
+  },
+  {
+   "id": "east-branch",
+   "kind": "reservoir",
+   "name": "East Branch Reservoir",
+   "system": "croton",
+   "lon": -73.5912,
+   "lat": 41.397,
+   "spillway_elev_m": null,
+   "construction_start": null,
+   "fill_start": null,
+   "fill_end": null,
+   "in_service": 1891,
+   "retired": null,
+   "dam_nid_id": "NY00031",
+   "dam_height_ft": 78.0,
+   "dam_length_ft": 1600.0,
+   "approx": [],
+   "source": "https://en.wikipedia.org/wiki/East_Branch_Reservoir",
+   "note": null,
+   "drowned_by": null,
+   "dam": null
+  },
+  {
+   "id": "bog-brook",
+   "kind": "reservoir",
+   "name": "Bog Brook Reservoir",
+   "system": "croton",
+   "lon": -73.5858,
+   "lat": 41.4157,
+   "spillway_elev_m": null,
+   "construction_start": null,
+   "fill_start": null,
+   "fill_end": null,
+   "in_service": 1892,
+   "retired": null,
+   "dam_nid_id": "NY00068",
+   "dam_height_ft": 47.0,
+   "dam_length_ft": 1340.0,
+   "approx": [],
+   "source": "https://en.wikipedia.org/wiki/Bog_Brook_Reservoir",
+   "note": null,
+   "drowned_by": null,
+   "dam": null
   },
   {
    "id": "titicus",
@@ -147,7 +242,9 @@
     "in_service"
    ],
    "source": "NID year completed",
-   "note": null
+   "note": null,
+   "drowned_by": null,
+   "dam": null
   },
   {
    "id": "amawalk",
@@ -169,7 +266,9 @@
     "in_service"
    ],
    "source": "NID year completed",
-   "note": null
+   "note": null,
+   "drowned_by": null,
+   "dam": null
   },
   {
    "id": "jerome-park",
@@ -192,7 +291,9 @@
     "fill_start"
    ],
    "source": "https://en.wikipedia.org/wiki/Jerome_Park_Reservoir",
-   "note": null
+   "note": null,
+   "drowned_by": null,
+   "dam": null
   },
   {
    "id": "new-croton",
@@ -214,7 +315,31 @@
     "fill_start"
    ],
    "source": "https://en.wikipedia.org/wiki/New_Croton_Reservoir",
-   "note": null
+   "note": null,
+   "drowned_by": null,
+   "dam": null
+  },
+  {
+   "id": "muscoot",
+   "kind": "reservoir",
+   "name": "Muscoot Reservoir",
+   "system": "croton",
+   "lon": -73.707,
+   "lat": 41.269,
+   "spillway_elev_m": null,
+   "construction_start": null,
+   "fill_start": null,
+   "fill_end": null,
+   "in_service": 1905,
+   "retired": null,
+   "dam_nid_id": "NY00061",
+   "dam_height_ft": 57.0,
+   "dam_length_ft": 1130.0,
+   "approx": [],
+   "source": "https://en.wikipedia.org/wiki/Muscoot_Reservoir",
+   "note": null,
+   "drowned_by": null,
+   "dam": null
   },
   {
    "id": "cross-river",
@@ -236,7 +361,9 @@
     "in_service"
    ],
    "source": "NID year completed",
-   "note": null
+   "note": null,
+   "drowned_by": null,
+   "dam": null
   },
   {
    "id": "croton-falls",
@@ -258,7 +385,31 @@
     "in_service"
    ],
    "source": "NID year completed",
-   "note": null
+   "note": null,
+   "drowned_by": null,
+   "dam": null
+  },
+  {
+   "id": "diverting",
+   "kind": "reservoir",
+   "name": "Diverting Reservoir",
+   "system": "croton",
+   "lon": -73.6299,
+   "lat": 41.3837,
+   "spillway_elev_m": null,
+   "construction_start": null,
+   "fill_start": null,
+   "fill_end": null,
+   "in_service": 1911,
+   "retired": null,
+   "dam_nid_id": "NY00056",
+   "dam_height_ft": 54.0,
+   "dam_length_ft": 1190.0,
+   "approx": [],
+   "source": "https://en.wikipedia.org/wiki/Diverting_Reservoir",
+   "note": null,
+   "drowned_by": null,
+   "dam": null
   },
   {
    "id": "ashokan",
@@ -278,7 +429,9 @@
    "dam_length_ft": 4650.0,
    "approx": [],
    "source": "https://en.wikipedia.org/wiki/Ashokan_Reservoir",
-   "note": null
+   "note": null,
+   "drowned_by": null,
+   "dam": null
   },
   {
    "id": "kensico",
@@ -300,7 +453,9 @@
     "fill_start"
    ],
    "source": "https://en.wikipedia.org/wiki/Kensico_Reservoir",
-   "note": "old Kensico dam (1885) demolished from 1911"
+   "note": "old Kensico dam (1885) demolished from 1911",
+   "drowned_by": null,
+   "dam": null
   },
   {
    "id": "hillview",
@@ -322,7 +477,9 @@
     "fill_start"
    ],
    "source": "https://en.wikipedia.org/wiki/Hillview_Reservoir",
-   "note": null
+   "note": null,
+   "drowned_by": null,
+   "dam": null
   },
   {
    "id": "schoharie",
@@ -345,7 +502,9 @@
     "fill_start"
    ],
    "source": "https://en.wikipedia.org/wiki/Schoharie_Reservoir",
-   "note": null
+   "note": null,
+   "drowned_by": null,
+   "dam": null
   },
   {
    "id": "rondout",
@@ -367,7 +526,9 @@
     "fill_start"
    ],
    "source": "https://en.wikipedia.org/wiki/Rondout_Reservoir",
-   "note": null
+   "note": null,
+   "drowned_by": null,
+   "dam": null
   },
   {
    "id": "neversink",
@@ -390,7 +551,9 @@
     "in_service"
    ],
    "source": "https://en.wikipedia.org/wiki/Neversink_Reservoir",
-   "note": null
+   "note": null,
+   "drowned_by": null,
+   "dam": null
   },
   {
    "id": "pepacton",
@@ -412,7 +575,9 @@
     "construction_start"
    ],
    "source": "https://en.wikipedia.org/wiki/Pepacton_Reservoir",
-   "note": null
+   "note": null,
+   "drowned_by": null,
+   "dam": null
   },
   {
    "id": "cannonsville",
@@ -435,7 +600,9 @@
     "fill_start"
    ],
    "source": "https://en.wikipedia.org/wiki/Cannonsville_Reservoir",
-   "note": null
+   "note": null,
+   "drowned_by": null,
+   "dam": null
   },
   {
    "id": "old-croton-aqueduct",
@@ -608,6 +775,14 @@
   },
   {
    "year": 1837,
+   "feature": "old-croton",
+   "type": "construction_start",
+   "label": "Croton Lake (Old Croton Dam): construction begins",
+   "system": "croton",
+   "approx": false
+  },
+  {
+   "year": 1837,
    "feature": "old-croton-aqueduct",
    "type": "construction_start",
    "label": "Old Croton Aqueduct: construction begins",
@@ -643,6 +818,22 @@
    "feature": "croton-distributing",
    "type": "fill_start",
    "label": "Croton Distributing Reservoir: starts filling",
+   "system": "croton",
+   "approx": false
+  },
+  {
+   "year": 1842,
+   "feature": "old-croton",
+   "type": "in_service",
+   "label": "Croton Lake (Old Croton Dam): in service",
+   "system": "croton",
+   "approx": false
+  },
+  {
+   "year": 1842,
+   "feature": "old-croton",
+   "type": "fill_start",
+   "label": "Croton Lake (Old Croton Dam): starts filling",
    "system": "croton",
    "approx": false
   },
@@ -751,6 +942,22 @@
    "approx": false
   },
   {
+   "year": 1891,
+   "feature": "east-branch",
+   "type": "in_service",
+   "label": "East Branch Reservoir: in service",
+   "system": "croton",
+   "approx": false
+  },
+  {
+   "year": 1892,
+   "feature": "bog-brook",
+   "type": "in_service",
+   "label": "Bog Brook Reservoir: in service",
+   "system": "croton",
+   "approx": false
+  },
+  {
    "year": 1892,
    "feature": "new-croton",
    "type": "construction_start",
@@ -800,6 +1007,14 @@
   },
   {
    "year": 1905,
+   "feature": "muscoot",
+   "type": "in_service",
+   "label": "Muscoot Reservoir: in service",
+   "system": "croton",
+   "approx": false
+  },
+  {
+   "year": 1905,
    "feature": "new-croton",
    "type": "fill_start",
    "label": "New Croton Reservoir: starts filling",
@@ -813,6 +1028,14 @@
    "label": "State Water Supply Act creates the Board of Water Supply",
    "system": "catskill",
    "approx": true
+  },
+  {
+   "year": 1906,
+   "feature": "old-croton",
+   "type": "retired",
+   "label": "Croton Lake (Old Croton Dam): retired",
+   "system": "croton",
+   "approx": false
   },
   {
    "year": 1906,
@@ -876,6 +1099,14 @@
    "type": "construction_start",
    "label": "City Water Tunnel No. 1: construction begins",
    "system": "catskill",
+   "approx": false
+  },
+  {
+   "year": 1911,
+   "feature": "diverting",
+   "type": "in_service",
+   "label": "Diverting Reservoir: in service",
+   "system": "croton",
    "approx": false
   },
   {

@@ -8,6 +8,7 @@ import { LineGeometry } from "three/examples/jsm/lines/LineGeometry.js";
 import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
 import { Bounds, Frame, HeightGrid, yOf, loadImage } from "./geo";
 import { gridGeometry, shadeGLSL } from "./terrain";
+import { buildDam, DamData } from "./dams";
 import {
   Reservoir, Aqueduct, Dam, Event, fillFraction, damProgress, damProgressFromYear, lineState,
   ERAS, SYSTEM_COLORS,
@@ -16,18 +17,22 @@ import {
 interface Valley {
   id: string; bounds: Bounds; water_level_m: number; reservoir_id: number;
   maps: { title: string; year: number }[]; synthetic: boolean;
+  /** smaller, older lakes the reservoir drowned (Croton Lake behind the 1842 dam) */
+  old_lakes: { file: string; level_m: number; name: string; reservoir_id: number }[];
+  /** the rivers before the reservoir, traced from the old maps */
+  old_rivers: [number, number][][];
 }
 interface Scene {
   region: { bounds: Bounds; size: [number, number] };
   valleys: Valley[];
-  reservoirs: Reservoir[]; dams: Dam[]; aqueducts: Aqueduct[]; events: Event[];
+  reservoirs: Reservoir[]; dams: DamData[]; aqueducts: Aqueduct[]; events: Event[];
 }
 
 const D = "./data/";
 const T0 = 1830, T1 = 2030;
 const PLAY_YEARS_PER_SEC = 4;
 const MAX_RES = 32;
-const MAX_CUT = 8;
+const MAX_CUT = 12;
 const TUNNEL_DEPTH_M = 120;
 
 // real routes from OpenStreetMap (routes.json), split into runs by how they were built
@@ -41,7 +46,7 @@ async function main() {
   const frame = new Frame(data.region.bounds);
   const loadingEl = document.getElementById("loading")!;
   let nLoaded = 0;
-  const nFiles = 5 + data.valleys.length * 4;
+  const nFiles = 5 + data.valleys.length * 6;
   const count = <T,>(p: Promise<T>) => p.then((v) => { loadingEl.textContent = `Loading terrain… ${++nLoaded}/${nFiles}`; return v; });
   const [region, resIdImg, waterImg, routes, rivers, valleyFiles] = await Promise.all([
     count(HeightGrid.load(D + "region_height.png", data.region.bounds)),
@@ -52,8 +57,11 @@ async function main() {
     Promise.all(data.valleys.map((v) => Promise.all([
       count(HeightGrid.load(D + `${v.id}_pre.png`, v.bounds)),
       count(loadImage(D + `${v.id}_mask.png`)),
+      count(loadImage(D + `${v.id}_water.png`)),
       count(loadImage(D + `${v.id}_dam.png`)),
       count(loadImage(D + `${v.id}_topo.jpg`)),
+      count(loadImage(D + `${v.id}_lakes.png`)),
+      Promise.all(v.old_lakes.map((o) => loadImage(D + o.file))),
     ]))),
   ]);
 
@@ -89,28 +97,34 @@ async function main() {
   const regionBox = box(data.region.bounds);
   const cutouts = data.valleys.slice(0, MAX_CUT).map((v) => box(v.bounds));
   while (cutouts.length < MAX_CUT) cutouts.push(new THREE.Vector4(1e9, 1e9, 1e9, 1e9));
-  const resIdTex = tex(resIdImg, true), lakeTex = tex(waterImg);
+  // the reservoir image is sampled twice: ids without filtering, the shore coverage (G) smoothly
+  const resIdTex = tex(resIdImg, true), resCovTex = tex(resIdImg), lakeTex = tex(waterImg);
   // Water looked up by scene position, shared by the region and the valley patches:
   // the city's reservoirs (id mask, filled on schedule) and natural lakes, ponds and other
   // towns' reservoirs (OpenStreetMap), in a softer, greyer blue so the city's still stand out.
   const waterGLSL = /* glsl */ `
-    uniform sampler2D resId; uniform sampler2D lakes; uniform float fill[${MAX_RES}]; uniform vec4 regionBox;
+    uniform sampler2D resId; uniform sampler2D resCov; uniform sampler2D lakes; uniform float fill[${MAX_RES}]; uniform vec4 regionBox;
     vec2 regionUv(vec3 w) {
       return vec2((w.x - regionBox.x) / (regionBox.z - regionBox.x), 1.0 - (w.z - regionBox.y) / (regionBox.w - regionBox.y));
     }
     int waterId(vec3 w) { return int(texture2D(resId, regionUv(w)).r * 255.0 + 0.5); }
-    vec3 applyLakes(vec3 c, vec3 w) { return mix(c, LAKE, smoothstep(0.3, 0.6, texture2D(lakes, regionUv(w)).r)); }
-    vec3 applyWater(vec3 c, int id) {
+    vec3 applyLakes(vec3 c, vec3 w) {
+      vec3 l = texture2D(lakes, regionUv(w)).rgb;
+      c = mix(c, LAKE, smoothstep(0.3, 0.6, l.r));
+      return mix(c, WATER * 0.85, smoothstep(0.35, 0.65, l.b));   // sea, Sound, tidal Hudson (coastline)
+    }
+    vec3 applyWater(vec3 c, int id, vec3 w) {
       if (id > 0 && id < ${MAX_RES}) {
         float f = 0.0;
         for (int k = 0; k < ${MAX_RES}; k++) if (k == id) f = fill[k];
-        return mix(c * vec3(0.92, 0.9, 0.8), WATER, f);          // valley floor tint until it floods
+        float cov = smoothstep(0.35, 0.65, texture2D(resCov, regionUv(w)).g);
+        return mix(c, mix(c * vec3(0.92, 0.9, 0.8), WATER, f), cov);   // floor tint until it floods
       }
       return c;
     }`;
   const regionMat = new THREE.ShaderMaterial({
     uniforms: {
-      resId: { value: resIdTex }, lakes: { value: lakeTex }, fill: fillU, regionBox: { value: regionBox },
+      resId: { value: resIdTex }, resCov: { value: resCovTex }, lakes: { value: lakeTex }, fill: fillU, regionBox: { value: regionBox },
       cutouts: { value: cutouts },
       fogColor: { value: new THREE.Color(0xb9c8d4) }, fogNear: { value: 250 }, fogFar: { value: 650 },
       alpha: { value: 1 },
@@ -134,8 +148,7 @@ async function main() {
           if (vW.x > b.x && vW.x < b.z && vW.z > b.y && vW.z < b.w) discard;
         }
         vec3 c = applyLakes(landColor(vE), vW);
-        if (vE < 0.25) c = WATER * 0.85;               // sea, harbour, tidal Hudson
-        c = applyWater(c, waterId(vW));
+        c = applyWater(c, waterId(vW), vW);
         c = light(c, vN);
         float fog = smoothstep(fogNear, fogFar, vDepth);
         gl_FragColor = vec4(mix(c, fogColor, fog), alpha);
@@ -149,16 +162,21 @@ async function main() {
   // before the reservoir, draped with the USGS sheets of the time; the dam grows out of it and
   // a water plane climbs from the old valley floor to today's level.
   const valleyMats: THREE.ShaderMaterial[] = [];
+  const oldRiverMats: LineMaterial[] = [];
   const valleys = data.valleys.map((v, n) => {
-    const [pre, maskImg, damImg, topoImg] = valleyFiles[n];
+    const [pre, maskImg, waterImg_, damImg, topoImg, lakesImg, oldLakeImgs] = valleyFiles[n];
     const maskData = imageRed(maskImg, pre.w, pre.h);
     const damData = imageRed(damImg, pre.w, pre.h);
     const step = q === "high" ? 1 : low ? 4 : 2;
-    const geo = gridGeometry(pre, frame, step, { damH: (i) => damData[i], inRes: (i) => maskData[i] / 255 },
+    const maskGrid0 = new HeightGrid(pre.w, pre.h, Float32Array.from(maskData), v.bounds);
+    const inV = (lon: number, lat: number) => lon > v.bounds.west && lon < v.bounds.east && lat > v.bounds.south && lat < v.bounds.north;
+    // a modelled dam (crest line from OpenStreetMap) replaces the dam lifted out of the terrain
+    const modelled = data.dams.some((d) => d.crests.length && inV(d.lon, d.lat) && maskGrid0.at(d.lon, d.lat) > 127);
+    const geo = gridGeometry(pre, frame, step, { damH: (i) => (modelled ? 0 : damData[i]), inRes: (i) => maskData[i] / 255 },
       { at: (lo, la) => region.at(lo, la), px: Math.round(pre.w / 40) });
     const u = {
       topo: { value: tex(topoImg) }, topoMix: { value: 1 }, damP: { value: 0 }, alpha: { value: 1 },
-      resId: { value: resIdTex }, lakes: { value: lakeTex }, fill: fillU, regionBox: { value: regionBox }, ownId: { value: v.reservoir_id },
+      resId: { value: resIdTex }, resCov: { value: resCovTex }, lakes: { value: lakeTex }, fill: fillU, regionBox: { value: regionBox }, ownId: { value: v.reservoir_id }, detail: { value: tex(lakesImg) },
       fogColor: { value: new THREE.Color(0xb9c8d4) }, fogNear: { value: 250 }, fogFar: { value: 650 },
     };
     const mat = new THREE.ShaderMaterial({
@@ -173,7 +191,7 @@ async function main() {
           gl_Position = projectionMatrix * mv;
         }`,
       fragmentShader: /* glsl */ `
-        uniform sampler2D topo; uniform float topoMix; uniform int ownId;
+        uniform sampler2D topo; uniform float topoMix; uniform int ownId; uniform sampler2D detail;
         uniform vec3 fogColor; uniform float fogNear; uniform float fogFar; uniform float alpha;
         varying vec3 vN; varying vec2 vUv; varying float vE; varying float vDepth; varying vec3 vW; varying float vIn;
         ${shadeGLSL}
@@ -182,10 +200,14 @@ async function main() {
           vec3 c = landColor(vE);
           // other water around the valley: lakes, and older or neighbouring reservoirs. Inside this
           // reservoir's own footprint the ground is pre-dam, so no lakes are drawn there.
-          if (vIn < 0.5) c = applyLakes(c, vW);
-          if (vE < 0.25) c = WATER * 0.85;
+          // lakes and sea from the patch's own, finer water map
+          if (vIn < 0.5) {
+            vec3 l = texture2D(detail, vUv).rgb;
+            c = mix(c, LAKE, smoothstep(0.3, 0.6, l.r));
+            c = mix(c, WATER * 0.85, smoothstep(0.35, 0.65, l.b));
+          }
           int id = waterId(vW);
-          if (id != ownId) c = applyWater(c, id);
+          if (id != ownId) c = applyWater(c, id, vW);
           vec3 map = texture2D(topo, vUv).rgb;
           float has = step(0.02, map.r + map.g + map.b);   // outside the sheets' neatlines
           // feather the map out toward the patch edges so it doesn't read as a pasted card
@@ -202,7 +224,7 @@ async function main() {
     const b = box(v.bounds);
     const waterGeo = new THREE.PlaneGeometry(b.z - b.x, b.w - b.y);
     waterGeo.rotateX(-Math.PI / 2);
-    const wU = { mask: { value: tex(maskImg) }, alpha: { value: 0 } };
+    const wU = { mask: { value: tex(waterImg_) }, alpha: { value: 0 } };
     const water = new THREE.Mesh(waterGeo, new THREE.ShaderMaterial({
       uniforms: wU, transparent: true, depthWrite: false,
       vertexShader: /* glsl */ `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
@@ -213,11 +235,30 @@ async function main() {
     }));
     water.position.set((b.x + b.z) / 2, 0, (b.y + b.w) / 2);
     scene.add(water);
-    const res = data.reservoirs.find((r) => r.id === v.reservoir_id)!;
+    // older lakes under this reservoir, each a flat plane at its own level
+    const oldLakes = v.old_lakes.map((o, k) => {
+      const ou = { mask: { value: tex(oldLakeImgs[k]) }, alpha: { value: 0 } };
+      const m = new THREE.Mesh(waterGeo, new THREE.ShaderMaterial({
+        uniforms: ou, transparent: true, depthWrite: false,
+        vertexShader: /* glsl */ `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
+        fragmentShader: /* glsl */ `
+          uniform sampler2D mask; uniform float alpha; varying vec2 vUv;
+          void main(){ if (texture2D(mask, vUv).r < 0.5) discard;
+            gl_FragColor = vec4(0.16, 0.38, 0.58, 0.9 * alpha); }`,
+      }));
+      m.position.set((b.x + b.z) / 2, yOf(o.level_m) + 0.002, (b.y + b.w) / 2);
+      scene.add(m);
+      return { res: data.reservoirs.find((r) => r.id === o.reservoir_id)!, u: ou };
+    });
+    // the city patch has no reservoir of its own (reservoir_id -1): a stand-in that never fills
+    const res: Reservoir = data.reservoirs.find((r) => r.id === v.reservoir_id) ?? {
+      id: -1, name: v.id, system: "croton", lon: 0, lat: 0, construction_start: null, fill_start: 1905, fill_end: 1930,
+      in_service: null, retired: null, water_level_m: -1e4, approx: [] };
     let bed = Infinity;
     for (let i = 0; i < maskData.length; i++) if (maskData[i] > 127 && pre.data[i] < bed) bed = pre.data[i];
+    if (!Number.isFinite(bed)) bed = 0;
     const inside = (lon: number, lat: number) => lon > v.bounds.west && lon < v.bounds.east && lat > v.bounds.south && lat < v.bounds.north;
-    const maskGrid = new HeightGrid(pre.w, pre.h, Float32Array.from(maskData), v.bounds);
+    const maskGrid = maskGrid0;
     const damGrid = new HeightGrid(pre.w, pre.h, Float32Array.from(damData), v.bounds);
     // ground today: the water surface over the reservoir, the dam, and the old ground elsewhere
     const groundNow = (lon: number, lat: number) => {
@@ -227,7 +268,28 @@ async function main() {
     // the old map stays up through the dam-building years and fades out while the valley floods
     const fadeFrom = res.fill_start ?? (res.in_service ?? 9999) - 1;
     const fadeTo = Math.max(fadeFrom + 2, res.fill_end ?? res.in_service ?? fadeFrom + 2);
-    return { v, res, u, water, wU, bed, inside, maskGrid, groundNow, fadeFrom, fadeTo };
+    // the old rivers, on the pre-dam ground
+    const orPts: number[] = [];
+    for (const line of v.old_rivers) {
+      let prev: number[] | null = null;
+      for (let i = 0; i < line.length; i++) {
+        const [lo0, la0] = line[i], [lo1, la1] = line[Math.min(i + 1, line.length - 1)];
+        const n_ = i === line.length - 1 ? 1 : Math.max(1, Math.ceil(Math.hypot(lo1 - lo0, la1 - la0) / 0.0004));
+        for (let k = 0; k < n_; k++) {
+          const lo = lo0 + ((lo1 - lo0) * k) / n_, la = la0 + ((la1 - la0) * k) / n_;
+          const [x, z] = frame.xz(lo, la);
+          const p = [x, yOf(pre.at(lo, la) + 3), z];
+          if (prev) orPts.push(...prev, ...p);
+          prev = p;
+        }
+      }
+    }
+    const orGeo = new LineSegmentsGeometry(); orGeo.setPositions(orPts);
+    const orMat = new LineMaterial({ color: 0x2f6fa8, linewidth: 2.4, transparent: true });
+    orMat.resolution.set(innerWidth, innerHeight); oldRiverMats.push(orMat);
+    const oldRiver = new LineSegments2(orGeo, orMat);
+    if (orPts.length) scene.add(oldRiver);
+    return { v, res, u, water, wU, bed, inside, maskGrid, groundNow, fadeFrom, fadeTo, oldLakes, pre, oldRiver };
   });
   // modern ground anywhere: a valley patch where there is one (finer), else the region
   const groundAt = (lon: number, lat: number) => {
@@ -254,20 +316,18 @@ async function main() {
   scene.add(new LineSegments2(rivGeo, rivMat));
 
   // ---- dams ----------------------------------------------------------------------------
-  // a valley patch raises its own dam out of the terrain, so dams inside a patch's reservoir
-  // footprint get no marker
-  const raised = (lon: number, lat: number) => valleys.some((vv) => vv.inside(lon, lat) && vv.maskGrid.at(lon, lat) > 127);
-  const damMeshes = data.dams.filter((d) => !raised(d.lon, d.lat)).map((d) => {
-    const h = ((d.height_ft ?? 50) * 0.3048 * 3) / 1000 + 0.05;
-    const m = new THREE.Mesh(
-      new THREE.BoxGeometry(Math.max(0.25, ((d.length_ft ?? 600) * 0.3048) / 1000), h, 0.12),
-      new THREE.MeshLambertMaterial({ color: 0xe9e4da }),
-    );
-    const [x, z] = frame.xz(d.lon, d.lat);
-    m.geometry.translate(0, h / 2, 0);
-    m.position.set(x, yOf(groundAt(d.lon, d.lat)) - 0.02, z);
+  // Each dam is built along its mapped crest line (see dams.ts) down to the ground without it:
+  // the pre-dam ground in a valley patch, else the region terrain. It rises during construction.
+  const groundPre = (lon: number, lat: number) => {
+    for (const vv of valleys) if (vv.inside(lon, lat)) return vv.pre.at(lon, lat);
+    return region.at(lon, lat);
+  };
+  const damMeshes = data.dams.flatMap((d) => {
+    if (!d.crests.length && !d.crest_elev_m) return [];   // small unmapped dams
+    const m = buildDam(d, frame, groundPre);
+    if (!m) return [];
     scene.add(m);
-    return { d, m };
+    return [{ d, m }];
   });
   scene.add(new THREE.HemisphereLight(0xffffff, 0x445544, 1.6));
   const sun = new THREE.DirectionalLight(0xffffff, 1.5); sun.position.set(-1, 1.4, -0.6); scene.add(sun);
@@ -373,7 +433,11 @@ async function main() {
   }
   let flight: { from: [THREE.Vector3, THREE.Vector3]; to: [THREE.Vector3, THREE.Vector3]; t: number } | null = null;
   function go(name: string, instant = false) {
-    const v = VIEWS[name] ?? VIEWS.region;
+    // "@lon,lat,km": look at any point from about that distance (handy for links and checks)
+    const at_ = name.startsWith("@") ? name.slice(1).split(",").map(Number) : null;
+    const v = at_ && at_.length === 3 && at_.every(Number.isFinite)
+      ? { target: at(at_[0], at_[1]), offset: new THREE.Vector3(-0.25, 0.75, 0.75).multiplyScalar(at_[2]) }
+      : VIEWS[name] ?? VIEWS.region;
     const to: [THREE.Vector3, THREE.Vector3] = [v.target.clone(), v.target.clone().add(v.offset)];
     document.querySelectorAll<HTMLButtonElement>("#views button[data-view]").forEach((b) => b.classList.toggle("on", b.dataset.view === name));
     if (instant) { controls.target.copy(to[0]); camera.position.copy(to[1]); controls.update(); return; }
@@ -422,9 +486,11 @@ async function main() {
       vv.u.topoMix.value = mapsOn * (1 - Math.min(1, Math.max(0, (t - vv.fadeFrom) / (vv.fadeTo - vv.fadeFrom))));
       vv.water.position.y = yOf(vv.bed + (vv.v.water_level_m - vv.bed) * Math.sqrt(f)) + 0.002;
       vv.wU.alpha.value = f > 0 ? 1 : 0;
+      for (const ol of vv.oldLakes) ol.u.alpha.value = fillFraction(ol.res, t) > 0 ? 1 : 0;
+      vv.oldRiver.visible = f < 0.999;
     }
     for (const { d, m } of damMeshes) {
-      const p = damProgressFromYear(d, t);
+      const p = damProgressFromYear(d as unknown as Dam, t);
       m.visible = p > 0; m.scale.y = Math.max(0.001, p);
     }
     for (const { a, objs, mats } of lines) {
@@ -439,7 +505,7 @@ async function main() {
       }
     }
     for (const { r, div } of resLabels) {
-      const f2 = fillFraction(r, t), building = damProgress(r, t) > 0 && f2 === 0;
+      const f2 = fillFraction(r, t), building = damProgress(r, t) > 0 && f2 === 0 && t < (r.in_service ?? 9999);
       div.style.opacity = f2 > 0 || building ? "1" : "0";
       div.classList.toggle("building", building);
     }
@@ -490,7 +556,7 @@ async function main() {
   addEventListener("resize", () => {
     camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
     renderer.setSize(innerWidth, innerHeight); labels.setSize(innerWidth, innerHeight);
-    for (const m of [...lineMats, rivMat]) m.resolution.set(innerWidth, innerHeight);
+    for (const m of [...lineMats, rivMat, ...oldRiverMats]) m.resolution.set(innerWidth, innerHeight);
   });
   // for automated screenshots: window.catchment.setYear(1915)
   requestAnimationFrame(() => requestAnimationFrame(() => ((window as any).__ready = true)));

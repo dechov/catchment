@@ -4,6 +4,7 @@ Outputs (to <out_dir>, normally web/public/data)
   water_mask.png   lakes and rivers on the region grid at 2x resolution
                    R = standing water (natural lakes, ponds, other cities' reservoirs)
                    G = rivers (centrelines drawn 2-3 px wide, ~60 m px)
+                   B = the sea, Long Island Sound and the tidal Hudson (from the coastline)
   rivers.json      the same rivers as simplified lon/lat polylines
                    NYC's own reservoirs are left out: the scene fills those over time.
   routes.json      the real aqueduct and tunnel routes, keyed by the aqueduct ids in
@@ -14,7 +15,7 @@ Outputs (to <out_dir>, normally web/public/data)
 Inputs: data/osm/{aqueducts,lakes,lake_relations,rivers}.json (Overpass, `out geom`),
         data/aqueducts.geojson, web/public/data/scene.json (region bounds)
 
-usage: python pipeline/osm_water.py <out_dir> [--debug <png>]
+usage: python pipeline/osm_water.py <out_dir> [--terrain <terrain_dir>] [--debug <png>]
 Data © OpenStreetMap contributors (ODbL).
 """
 import json, math, os, sys
@@ -24,6 +25,7 @@ from PIL import Image, ImageDraw
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 out = sys.argv[1]
 debug = sys.argv[sys.argv.index("--debug") + 1] if "--debug" in sys.argv else None
+tdir = sys.argv[sys.argv.index("--terrain") + 1] if "--terrain" in sys.argv else None
 OSM = f"{ROOT}/data/osm"
 load = lambda n: json.load(open(f"{OSM}/{n}.json"))["elements"]
 
@@ -102,7 +104,7 @@ def nyc_overlap(outer):
             n += 1; hit += res_px[x + x0, y + y0][0] > 0
     return hit / n if n else 0
 
-SKIP_WATER = {"river", "stream", "canal", "tidal", "wastewater", "basin", "fountain"}
+SKIP_WATER = {"stream", "canal", "tidal", "wastewater", "basin", "fountain"}   # river areas count: the wide Delaware etc.
 polys, dropped = [], defaultdict(int)
 for e in load("lakes") + load("lake_relations"):
     t = e.get("tags", {})
@@ -142,8 +144,69 @@ for e in load("rivers"):
 json.dump(riv_lines, open(f"{out}/rivers.json", "w"), separators=(",", ":"))
 from PIL import ImageChops
 lake_layer = ImageChops.subtract(lake_layer, hole_layer)
-mask = Image.merge("RGB", (lake_layer, river_layer, Image.new("L", (W, H))))
+# --- the sea, the Sound and the tidal Hudson: OpenStreetMap's coastline drawn as a wall, then
+# flood-filled from the open Atlantic. (Terrain heights alone can't tell the Hudson's surface,
+# a few metres up north of Newburgh, from low ground, and are too coarse for Manhattan.)
+SS = 2   # drawn at twice the mask grid, then box-reduced, so shores come out antialiased
+wall = Image.new("L", (W * SS, H * SS)); dw = ImageDraw.Draw(wall)
+coast = [geom(e) for e in load("coastline") if len(geom(e)) >= 2]
+for g in coast:
+    dw.line([(x * SS, y * SS) for x, y in (px(*p) for p in g)], fill=255, width=2)
+import numpy as np
+from scipy import ndimage
+wall_a = np.asarray(wall) > 0
+lab, _ = ndimage.label(~wall_a)
+sx, sy = px(-73.70, 40.47)   # open Atlantic south of Long Island
+sea_a = lab == lab[int(sy * SS), int(sx * SS)]
+sea_a |= wall_a & ndimage.binary_dilation(sea_a)   # the coastline itself sits half in the water
+# North of Yonkers OSM maps the Hudson as a river area our extract lacks, so there the river is
+# the flat, near-sea-level ground along its centreline in the terrain (hydro-flattened to 0-4 m).
+if tdir:
+    tm = json.load(open(f"{tdir}/region_meta.json"))
+    tv = np.asarray(Image.open(f"{tdir}/region_height16.png")).astype(np.float32)
+    te = tm["elev_min_m"] + tv / 65535 * (tm["elev_max_m"] - tm["elev_min_m"])
+    TW, TH = te.shape[1], te.shape[0]
+    tpx = lambda lon, lat: ((mx(lon) - X0) / (X1 - X0) * TW, (Y0 - my(lat)) / (Y0 - Y1) * TH)
+    cl = Image.new("L", (TW, TH)); dc = ImageDraw.Draw(cl)
+    for e in load("rivers"):
+        if e.get("tags", {}).get("name") == "Hudson River":
+            dc.line([tpx(*p) for p in geom(e)], fill=255, width=3)
+    cl_a = np.asarray(cl) > 0
+    zone = ndimage.binary_dilation(cl_a, iterations=int(1500 / tm["meters_per_pixel_approx"]))
+    gy_, gx_ = np.gradient(te)
+    low = zone & (te < 6.0) & (np.hypot(gx_, gy_) < 0.5)
+    lab2, _ = ndimage.label(low)
+    hud = np.isin(lab2, np.unique(lab2[cl_a & low])) & (lab2 > 0)
+    hud |= ndimage.binary_dilation(cl_a, iterations=4)   # never narrower than ~250 m: no gaps
+    hud = ndimage.binary_closing(hud, iterations=2)
+    hud_big = np.asarray(Image.fromarray((hud * 255).astype(np.uint8)).resize((W * SS, H * SS), Image.BILINEAR)) > 127
+    sea_a |= hud_big
+    print(f"Hudson from terrain: {hud.sum() * tm['meters_per_pixel_approx'] ** 2 / 1e6:.0f} km2")
+sea_layer = Image.fromarray((sea_a * 255).astype(np.uint8)).resize((W, H), Image.BOX)
+print(f"coastline: {len(coast)} ways, sea {sea_a.mean() * 100:.1f}% of the region")
+mask = Image.merge("RGB", (lake_layer, river_layer, sea_layer))
 mask.save(f"{out}/water_mask.png", optimize=True)
+
+# --- finer water for each detail patch (valleys, the city): lakes drawn straight at the patch's
+# own resolution, the sea cut from the 2x-oversampled region layer (~22 m)
+for v in scene.get("valleys", []):
+    b = v["bounds"]
+    PW = 2048; PH = round(PW * (my(b["north"]) - my(b["south"])) / (mx(b["east"]) - mx(b["west"])))
+    ppx = lambda lon, lat: ((mx(lon) - mx(b["west"])) / (mx(b["east"]) - mx(b["west"])) * PW,
+                            (my(b["north"]) - my(lat)) / (my(b["north"]) - my(b["south"])) * PH)
+    lk, hl = Image.new("L", (PW, PH)), Image.new("L", (PW, PH))
+    dlk, dhl = ImageDraw.Draw(lk), ImageDraw.Draw(hl)
+    for outers, inners, _ in polys:
+        for o in outers:
+            q = [ppx(*p) for p in o]
+            if max(x for x, _ in q) < 0 or min(x for x, _ in q) > PW or max(y for _, y in q) < 0 or min(y for _, y in q) > PH: continue
+            dlk.polygon(q, fill=255)
+        for i in inners: dhl.polygon([ppx(*p) for p in i], fill=255)
+    lk = ImageChops.subtract(lk, hl)
+    (x0, y0), (x1, y1) = px(b["west"], b["north"]), px(b["east"], b["south"])
+    sea_p = Image.fromarray((sea_a * 255).astype(np.uint8)).crop((x0 * SS, y0 * SS, x1 * SS, y1 * SS)).resize((PW, PH), Image.BILINEAR)
+    Image.merge("RGB", (lk, Image.new("L", (PW, PH)), sea_p)).save(f"{out}/{v['id']}_lakes.png", optimize=True)
+print("detail water for", [v["id"] for v in scene.get("valleys", [])])
 print(f"water_mask.png {W}x{H}: {len(polys)} lakes/ponds, {n_rivers} river ways; dropped {dict(dropped)}")
 
 # --- aqueduct routes --------------------------------------------------------------------

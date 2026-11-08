@@ -15,12 +15,14 @@ import json, os, sys, urllib.parse, urllib.request
 # earlier than filling is set where later editions already print the planned reservoir (the
 # 1902 Tarrytown sheet shows New Croton Reservoir in blue).
 VALLEYS = {
-    "new-croton": ((-73.876, 41.200, -73.713, 41.266), 1905, 1900),
+    "new-croton": ((-73.876, 41.200, -73.713, 41.266), 1905, 1899),
     "kensico": ((-73.790, 41.052, -73.703, 41.140), 1915),
     "schoharie": ((-74.471, 42.321, -74.417, 42.407), 1924),
     "rondout": ((-74.505, 41.784, -74.408, 41.855), 1950),
     "neversink": ((-74.690, 41.805, -74.623, 41.891), 1953),
     "pepacton": ((-74.982, 42.052, -74.731, 42.135), 1954),
+    # not a valley: the city, for its old reservoirs and shoreline (no reservoir rebuild)
+    "city": ((-74.06, 40.57, -73.80, 40.92), 1901),
     "cannonsville": ((-75.394, 42.048, -75.152, 42.183), 1963),
 }
 SCALE_RANK = {"24000": 0, "31680": 1, "62500": 2}

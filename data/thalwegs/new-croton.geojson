@@ -1,0 +1,178 @@
+{
+ "type": "FeatureCollection",
+ "note": "Croton River before New Croton Reservoir, traced by eye on the georeferenced USGS 1:62,500 Tarrytown (1893), West Point and Stamford (1899) sheets. Listed downstream to upstream. Approximate (~50 m). Elevations are anchors along the line, interpolated by distance between them.",
+ "features": [
+  {
+   "type": "Feature",
+   "properties": {
+    "name": "Croton River (pre-1905)",
+    "anchors": [
+     {
+      "at": 1,
+      "elev_m": 16.0,
+      "source": "New Croton Dam site: ~45 m below the 59.5 m water level"
+     },
+     {
+      "at": 15,
+      "elev_m": 32.0,
+      "source": "Old Croton Dam (1842) base: crest 34 ft under today's water (49 m), 57 ft high (Wikipedia)"
+     },
+     {
+      "at": 32,
+      "elev_m": 44.0,
+      "source": "upstream end, under the old Croton Lake (level 49 m)"
+     }
+    ]
+   },
+   "geometry": {
+    "type": "LineString",
+    "coordinates": [
+     [
+      -73.85825,
+      41.22735
+     ],
+     [
+      -73.85671,
+      41.2267
+     ],
+     [
+      -73.85396,
+      41.22915
+     ],
+     [
+      -73.84967,
+      41.23122
+     ],
+     [
+      -73.84538,
+      41.23303
+     ],
+     [
+      -73.84151,
+      41.23432
+     ],
+     [
+      -73.83765,
+      41.23509
+     ],
+     [
+      -73.83336,
+      41.23612
+     ],
+     [
+      -73.82907,
+      41.23754
+     ],
+     [
+      -73.82564,
+      41.23812
+     ],
+     [
+      -73.82049,
+      41.23819
+     ],
+     [
+      -73.81534,
+      41.23767
+     ],
+     [
+      -73.81019,
+      41.23703
+     ],
+     [
+      -73.80675,
+      41.23625
+     ],
+     [
+      -73.80332,
+      41.23445
+     ],
+     [
+      -73.80057,
+      41.23335
+     ],
+     [
+      -73.79817,
+      41.23367
+     ],
+     [
+      -73.79474,
+      41.2338
+     ],
+     [
+      -73.79045,
+      41.23283
+     ],
+     [
+      -73.78615,
+      41.23122
+     ],
+     [
+      -73.78186,
+      41.22928
+     ],
+     [
+      -73.77843,
+      41.2278
+     ],
+     [
+      -73.77414,
+      41.2267
+     ],
+     [
+      -73.7707,
+      41.22767
+     ],
+     [
+      -73.76727,
+      41.2296
+     ],
+     [
+      -73.76384,
+      41.23251
+     ],
+     [
+      -73.7604,
+      41.23587
+     ],
+     [
+      -73.75697,
+      41.23883
+     ],
+     [
+      -73.75268,
+      41.24206
+     ],
+     [
+      -73.74839,
+      41.24413
+     ],
+     [
+      -73.74152,
+      41.24606
+     ],
+     [
+      -73.73466,
+      41.248
+     ],
+     [
+      -73.7271,
+      41.25019
+     ]
+    ]
+   }
+  }
+ ],
+ "old_lakes": [
+  {
+   "name": "Croton Lake (1842)",
+   "reservoir": "old-croton",
+   "level_m": 49.1,
+   "dam": [
+    -73.80056,
+    41.23333
+   ],
+   "upstream_of_vertex": 15
+  }
+ ]
+}
