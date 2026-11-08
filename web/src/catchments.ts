@@ -53,9 +53,9 @@ export function catchGLSL() {
 
 export class Catchments {
   readonly W: number; readonly H: number;
-  private dir: Uint8Array;
-  private acc: Uint8Array;
-  private first: Uint8Array;
+  readonly dir: Uint8Array;
+  readonly acc: Uint8Array;
+  readonly first: Uint8Array;
   private mask: Uint8Array;
   readonly tracedTex: THREE.DataTexture;
   readonly uniforms: Record<string, { value: unknown }>;

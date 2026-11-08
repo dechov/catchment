@@ -12,6 +12,7 @@ import { buildDam, DamData } from "./dams";
 import { TileTerrain } from "./tiles";
 import { buildDemand, storage, waterUse } from "./demand";
 import { Catchments, catchGLSL, CatchInfo } from "./catchments";
+import { FlowParticles, buildPeaks, waterTableGrid } from "./flowfx";
 import {
   Reservoir, Aqueduct, Dam, Event, fillFraction, damProgress, damProgressFromYear, lineState,
   ERAS, SYSTEM_COLORS,
@@ -467,6 +468,7 @@ async function main() {
   const ugBtn = document.getElementById("underground") as HTMLButtonElement;
   function setUnderground(on: boolean) {
     underground = on; ugBtn.classList.toggle("on", on);
+    waterTable.visible = on;
     for (const m of [regionMat, ...valleyMats]) {
       m.transparent = on; m.depthWrite = !on; m.uniforms.alpha.value = on ? 0.28 : 1; m.needsUpdate = true;
     }
@@ -546,6 +548,19 @@ async function main() {
   const oldMaps = document.getElementById("oldmaps") as HTMLInputElement;
   const catchOn = document.getElementById("catchOn") as HTMLInputElement;
   catchOn.addEventListener("change", () => { catchments.uniforms.catchOn.value = catchOn.checked ? 1 : 0; });
+  // drops running down the streams, and the named peaks
+  const resById = new Map(data.reservoirs.map((r) => [r.id, r]));
+  const drops = new FlowParticles(catchments.W, catchments.H, catchments.dir, catchments.acc, catchments.first, region,
+    data.region.bounds, frame, (id) => { const r = resById.get(id); return r ? new THREE.Color(SYSTEM_COLORS[r.system] ?? "#cfe") : null; },
+    low ? 1500 : 4000);
+  scene.add(drops.points);
+  const peaks = buildPeaks(region, frame);
+  scene.add(peaks.group);
+  // the water table, seen in the underground view; it sinks in a drought
+  const waterTable = new THREE.Mesh(gridGeometry(waterTableGrid(region, low ? 8 : 4), frame, 1),
+    new THREE.MeshLambertMaterial({ color: 0x3a8fd8, transparent: true, opacity: 0.28, depthWrite: false, side: THREE.DoubleSide }));
+  waterTable.visible = false; waterTable.renderOrder = 1;
+  scene.add(waterTable);
   // tap (not drag) the ground: trace everything upstream of that point
   scene.add(catchments.label);
   const rb_ = data.region.bounds;
@@ -610,6 +625,7 @@ async function main() {
       vv.oldRiver.visible = f0 < 0.999;
     }
     demand.update(t);
+    waterTable.position.y = -yOf((1 - dry) * 12);   // a drought lowers the water table too
     for (const { d, m } of damMeshes) {
       const p = damProgressFromYear(d as unknown as Dam, t);
       m.visible = p > 0; m.scale.y = Math.max(0.001, p);
@@ -672,6 +688,9 @@ async function main() {
     }
     controls.update();
     tiles?.update(camera);
+    peaks.update(camD);
+    drops.points.visible = catchOn.checked && camD > 15;
+    if (drops.points.visible) drops.update(dt, (id) => { const r = resById.get(id); return !!r && fillFraction(r, year) > 0; });
     // fog follows the camera's distance, so the horizon fades whether close in or far out
     const fogD = Math.max(60, camD);
     for (const m of [regionMat, ...valleyMats]) { m.uniforms.fogNear.value = fogD * 1.6; m.uniforms.fogFar.value = fogD * 5; }
