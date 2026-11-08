@@ -1,0 +1,30 @@
+{
+  "title": "Map Of That Portion Of The City And County Of New - York North Of 50th St. Surveyed & Drawn by R.A. Jones, C.E. Published by M. Dripps, 103 Fulton St. N.Y. 1851. (inset) Westchester County (Raster Image)",
+  "author": "Dripps, M. (Matthew); Jones, R. A.",
+  "year": 1851,
+  "rumsey_url": null,
+  "georeferencer_url": null,
+  "stanford_purl": "https://purl.stanford.edu/bw151ck4710",
+  "rumsey_gis_id": "g2495000",
+  "source_cog": "https://stacks.stanford.edu/file/druid:bw151ck4710/g2495000_cog.tif",
+  "image": "g2495000_1851.png",
+  "bounds": {
+    "west": -74.00665283203125,
+    "south": 40.74725176080348,
+    "east": -73.8995361328125,
+    "north": 40.84706035607121
+  },
+  "bounds_mercator_m": {
+    "west": -8238382.908576297,
+    "south": 4975132.532655269,
+    "east": -8226458.732163809,
+    "north": 4989809.206456305
+  },
+  "crs": "EPSG:3857",
+  "bounds_note": "bounds are WGS84 lon/lat of the image edges; pixels are in EPSG:3857",
+  "width": 3000,
+  "height": 3693,
+  "georeference_source": "Stanford/David Rumsey published GeoTIFF, not Georeferencer control points",
+  "license": "This work is licensed under a Creative Commons Attribution Non Commercial Share Alike 3.0 Unported license (CC BY-NC-SA).",
+  "use_and_reproduction": "Image from the David Rumsey Map Collection courtesy Stanford University Libraries. To obtain permission to publish or reproduce commercially, please contact the David Rumsey Map Center at rumseymapcenter@stanford.edu."
+}

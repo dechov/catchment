@@ -1,0 +1,30 @@
+{
+  "title": "Sanitary & Topographical Map of the City and Island of New York Prepared for the Council of Hygiene and Public Health of the Citizens Association. Under the direction of Egbert L. Viele, Topographical Engineer. Entered ... 1865 by Egbert L. Viele ... New York. Ferd. Mayer & Co. Lithographers, 96 Fulton St. N.Y. (with 1 inset map and 3 profiles) (Raster Image)",
+  "author": "Viele, Egbert L. (Egbert Ludovicus), 1825-1902",
+  "year": 1865,
+  "rumsey_url": null,
+  "georeferencer_url": null,
+  "stanford_purl": "https://purl.stanford.edu/zy795ng8068",
+  "rumsey_gis_id": "g3723000",
+  "source_cog": "https://stacks.stanford.edu/file/druid:zy795ng8068/g3723000_cog.tif",
+  "image": "g3723000_1865.png",
+  "bounds": {
+    "west": -74.05334472656249,
+    "south": 40.68062969368095,
+    "east": -73.8720703125,
+    "north": 40.87198775669741
+  },
+  "bounds_mercator_m": {
+    "west": -8243580.626499688,
+    "south": 4965348.134412597,
+    "east": -8223401.251032402,
+    "north": 4993478.183813995
+  },
+  "crs": "EPSG:3857",
+  "bounds_note": "bounds are WGS84 lon/lat of the image edges; pixels are in EPSG:3857",
+  "width": 3000,
+  "height": 4182,
+  "georeference_source": "Stanford/David Rumsey published GeoTIFF, not Georeferencer control points",
+  "license": "This work is licensed under a Creative Commons Attribution Non Commercial Share Alike 3.0 Unported license (CC BY-NC-SA).",
+  "use_and_reproduction": "Image from the David Rumsey Map Collection courtesy Stanford University Libraries. To obtain permission to publish or reproduce commercially, please contact the David Rumsey Map Center at rumseymapcenter@stanford.edu."
+}

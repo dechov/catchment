@@ -1,0 +1,30 @@
+{
+  "title": "Map of the City of New York extending northward to Fiftieth St. (Raster Image)",
+  "author": "Harrison, John F.; Dripps, M. (Matthew)",
+  "year": 1852,
+  "rumsey_url": null,
+  "georeferencer_url": null,
+  "stanford_purl": "https://purl.stanford.edu/zy955dh0497",
+  "rumsey_gis_id": "g2620000",
+  "source_cog": "https://stacks.stanford.edu/file/druid:zy955dh0497/g2620000_cog.tif",
+  "image": "g2620000_1852.png",
+  "bounds": {
+    "west": -74.02862548828125,
+    "south": 40.688966955001376,
+    "east": -73.95721435546875,
+    "north": 40.772221877329024
+  },
+  "bounds_mercator_m": {
+    "west": -8240828.893481422,
+    "south": 4966572.0441095,
+    "east": -8232879.442539764,
+    "north": 4978802.274383241
+  },
+  "crs": "EPSG:3857",
+  "bounds_note": "bounds are WGS84 lon/lat of the image edges; pixels are in EPSG:3857",
+  "width": 3000,
+  "height": 4616,
+  "georeference_source": "Stanford/David Rumsey published GeoTIFF, not Georeferencer control points",
+  "license": "This work is licensed under a Creative Commons Attribution Non Commercial Share Alike 3.0 Unported license (CC BY-NC-SA).",
+  "use_and_reproduction": "Image from the David Rumsey Map Collection courtesy Stanford University Libraries. To obtain permission to publish or reproduce commercially, please contact the David Rumsey Map Center at rumseymapcenter@stanford.edu."
+}

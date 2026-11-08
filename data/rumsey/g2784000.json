@@ -1,0 +1,30 @@
+{
+  "title": "Topographical Map Of The City and County Of New - York, and the adjacent Country: With Views in the border of the principal Buildings and interesting Scenery of the Island. Published By J.H. Colton & Co. No. 4 Spruce St. New-York. 1836. Engraved & Printed by S. Stiles & Company, New-York. Entered ... 1836, by J.H. Colton & Co. ... New York. (Raster Image)",
+  "author": "Colton, J. H. (Joseph Hutchins), 1800-1893",
+  "year": 1836,
+  "rumsey_url": null,
+  "georeferencer_url": null,
+  "stanford_purl": "https://purl.stanford.edu/sk292ys2245",
+  "rumsey_gis_id": "g2784000",
+  "source_cog": "https://stacks.stanford.edu/file/druid:sk292ys2245/g2784000_cog.tif",
+  "image": "g2784000_1836.png",
+  "bounds": {
+    "west": -74.10278320312501,
+    "south": 40.6431355833128,
+    "east": -73.80615234375001,
+    "north": 40.90520969727359
+  },
+  "bounds_mercator_m": {
+    "west": -8249084.092536222,
+    "south": 4959845.891368517,
+    "east": -8216063.296317026,
+    "north": 4998370.153624246
+  },
+  "crs": "EPSG:3857",
+  "bounds_note": "bounds are WGS84 lon/lat of the image edges; pixels are in EPSG:3857",
+  "width": 3000,
+  "height": 3500,
+  "georeference_source": "Stanford/David Rumsey published GeoTIFF, not Georeferencer control points",
+  "license": "This work is licensed under a Creative Commons Attribution Non Commercial Share Alike 3.0 Unported license (CC BY-NC-SA).",
+  "use_and_reproduction": "Image from the David Rumsey Map Collection courtesy Stanford University Libraries. To obtain permission to publish or reproduce commercially, please contact the David Rumsey Map Center at rumseymapcenter@stanford.edu."
+}
