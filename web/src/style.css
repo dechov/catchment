@@ -61,6 +61,11 @@ button.on { background: rgba(255,255,255,0.26); border-color: rgba(255,255,255,0
 .label { color: #fff; font-size: 12px; text-shadow: 0 1px 3px #000, 0 0 2px #000; white-space: nowrap;
   pointer-events: none; transition: opacity 0.4s; }
 .label.building { color: var(--amber); }
+.label.demand { background: var(--panel); border-left: 4px solid #2f7fd0; border-radius: 6px; padding: 5px 8px;
+  font-size: 12px; line-height: 1.35; text-shadow: none; transform: translateY(-50%); }
+.label.demand b { font-size: 13px; }
+.label.demand .cap-line { color: var(--muted); }
+.label.demand.short { border-color: #d9603b; }
 
 #loading { position: fixed; inset: 0; display: grid; place-items: center; background: var(--bg);
   font-size: 18px; color: var(--muted); transition: opacity 0.5s; }

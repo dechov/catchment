@@ -10,6 +10,7 @@ import { Bounds, Frame, HeightGrid, yOf, loadImage } from "./geo";
 import { gridGeometry, shadeGLSL } from "./terrain";
 import { buildDam, DamData } from "./dams";
 import { TileTerrain } from "./tiles";
+import { buildDemand } from "./demand";
 import {
   Reservoir, Aqueduct, Dam, Event, fillFraction, damProgress, damProgressFromYear, lineState,
   ERAS, SYSTEM_COLORS,
@@ -325,6 +326,9 @@ async function main() {
     if (orPts.length) scene.add(oldRiver);
     return { v, res, u, water, wU, bed, inside, maskGrid, groundNow, edWin, maps, oldLakes, pre, oldRiver };
   });
+  // the city's daily use against what the system can deliver, on the old distributing reservoir's block
+  const demand = buildDemand(frame, (lo, la) => region.at(lo, la));
+  scene.add(demand.group);
   // modern ground anywhere: a valley patch where there is one (finer), else the region
   const groundAt = (lon: number, lat: number) => {
     for (const vv of valleys) if (vv.inside(lon, lat)) return vv.groundNow(lon, lat);
@@ -541,6 +545,7 @@ async function main() {
       for (const ol of vv.oldLakes) ol.u.alpha.value = (ol.res ? fillFraction(ol.res, t) > 0 : f < 0.5) ? 1 : 0;
       vv.oldRiver.visible = f < 0.999;
     }
+    demand.update(t);
     for (const { d, m } of damMeshes) {
       const p = damProgressFromYear(d as unknown as Dam, t);
       m.visible = p > 0; m.scale.y = Math.max(0.001, p);
