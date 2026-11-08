@@ -4,6 +4,20 @@ A 3D, scrubbable history of New York City's water supply: reservoirs, dams, aque
 
 Plan: [NYC Water History in 3D](https://claude.ai/artifact/7ar4CxqWiGdjeNMVFFmz3P). The MVP covers the whole system at low fidelity, with the Ashokan valley reconstructed in detail.
 
+## Run the 3D scene
+
+```sh
+cd web
+npm install
+npm run dev        # then open the printed localhost URL
+```
+
+Drag the time bar or press play to watch 1830 to 2030. The buttons at the top right fly to the whole system, Ashokan, the Croton watershed, or the city. The URL keeps the year and view, so `?t=1913&view=ashokan` opens on Ashokan filling. Add `q=low` for a lighter mesh on slow machines.
+
+`pipeline/export_web.py` writes the scene's data into `web/public/data/`: Terrarium-encoded heightmaps, a reservoir-outline mask found from flat water surfaces, the Ashokan before/after terrain, the old-map texture, and `scene.json`.
+
+![Ashokan filling, 1913](docs/scene_ashokan_1913.jpg)
+
 ## Status: phase 1 (data spike)
 
 | Path | What it is | Source |

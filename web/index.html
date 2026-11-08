@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Catchment</title>
+  <link rel="stylesheet" href="./src/style.css" />
+</head>
+<body>
+  <div id="app"></div>
+  <header id="title">
+    <h1>Catchment</h1>
+    <p>How New York City built its water supply</p>
+  </header>
+  <nav id="views">
+    <button data-view="region" class="on">Whole system</button>
+    <button data-view="ashokan">Ashokan</button>
+    <button data-view="croton">Croton</button>
+    <button data-view="city">City</button>
+  </nav>
+  <aside id="captions" aria-live="polite"></aside>
+  <aside id="legend">
+    <div><i class="sw croton"></i>Croton</div>
+    <div><i class="sw catskill"></i>Catskill</div>
+    <div><i class="sw delaware"></i>Delaware</div>
+    <div><i class="sw modern"></i>Modern</div>
+    <div><i class="sw dash"></i>Under construction</div>
+  </aside>
+  <footer id="timebar">
+    <button id="play" aria-label="Play">▶</button>
+    <div id="year">1830</div>
+    <div id="track">
+      <div id="eras"></div>
+      <div id="ticks"></div>
+      <input id="slider" type="range" min="1830" max="2030" step="0.1" value="1830" aria-label="Year" />
+    </div>
+  </footer>
+  <div id="loading">Loading terrain…</div>
+  <script type="module" src="./src/main.ts"></script>
+</body>
+</html>

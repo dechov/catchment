@@ -1160,14 +1160,6 @@
   },
   {
    "year": 1955,
-   "feature": null,
-   "type": "milestone",
-   "label": "Old Croton Aqueduct taken out of service",
-   "system": "croton",
-   "approx": false
-  },
-  {
-   "year": 1955,
    "feature": "old-croton-aqueduct",
    "type": "retired",
    "label": "Old Croton Aqueduct: retired",
