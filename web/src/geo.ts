@@ -21,6 +21,11 @@ export class Frame {
   xz(lon: number, lat: number): [number, number] {
     return [((mx(lon) - this.cx) * this.k) / 1000, (-(my(lat) - this.cy) * this.k) / 1000];
   }
+  /** scene x, z (km) -> lon/lat */
+  lonlat(x: number, z: number): [number, number] {
+    const X = (x * 1000) / this.k + this.cx, Y = (-z * 1000) / this.k + this.cy;
+    return [((X / R) * 180) / Math.PI, ((2 * Math.atan(Math.exp(Y / R)) - Math.PI / 2) * 180) / Math.PI];
+  }
   /** mercator metres -> scene x, z */
   mxz(X: number, Y: number): [number, number] {
     return [((X - this.cx) * this.k) / 1000, (-(Y - this.cy) * this.k) / 1000];

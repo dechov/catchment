@@ -6,11 +6,12 @@ import { LineSegments2 } from "three/examples/jsm/lines/LineSegments2.js";
 import { LineSegmentsGeometry } from "three/examples/jsm/lines/LineSegmentsGeometry.js";
 import { LineGeometry } from "three/examples/jsm/lines/LineGeometry.js";
 import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
-import { Bounds, Frame, HeightGrid, yOf, loadImage } from "./geo";
+import { Bounds, Frame, HeightGrid, yOf, loadImage, mx, my } from "./geo";
 import { gridGeometry, shadeGLSL } from "./terrain";
 import { buildDam, DamData } from "./dams";
 import { TileTerrain } from "./tiles";
-import { buildDemand, storage } from "./demand";
+import { buildDemand, storage, waterUse } from "./demand";
+import { Catchments, catchGLSL, CatchInfo } from "./catchments";
 import {
   Reservoir, Aqueduct, Dam, Event, fillFraction, damProgress, damProgressFromYear, lineState,
   ERAS, SYSTEM_COLORS,
@@ -50,9 +51,9 @@ async function main() {
   const frame = new Frame(data.region.bounds);
   const loadingEl = document.getElementById("loading")!;
   let nLoaded = 0;
-  const nFiles = 5 + data.valleys.length * 5;
+  const nFiles = 7 + data.valleys.length * 5;
   const count = <T,>(p: Promise<T>) => p.then((v) => { loadingEl.textContent = `Loading terrain… ${++nLoaded}/${nFiles}`; return v; });
-  const [region, resIdImg, waterImg, routes, rivers, valleyFiles] = await Promise.all([
+  const [region, resIdImg, waterImg, routes, rivers, valleyFiles, flowImg, catchInfo] = await Promise.all([
     count(HeightGrid.load(D + "region_height.png", data.region.bounds)),
     count(loadImage(D + "region_reservoirs.png")),
     count(loadImage(D + "water_mask.png")),
@@ -66,6 +67,8 @@ async function main() {
       count(loadImage(D + `${v.id}_lakes.png`)),
       Promise.all(v.old_lakes.map((o) => loadImage(D + o.file))),
     ]))),
+    count(loadImage(D + "flow.png")),
+    count(fetch(D + "catchments.json").then((r) => r.json() as Promise<CatchInfo>)),
   ]);
 
   // ---- renderer, camera, controls ------------------------------------------------------
@@ -128,8 +131,22 @@ async function main() {
       }
       return c;
     }`;
+  const sysOfId = (id: number) => new THREE.Color(SYSTEM_COLORS[data.reservoirs.find((r) => r.id === id)?.system ?? ""] ?? "#888");
+  const catchments = new Catchments(flowImg, catchInfo, data.region.bounds, sysOfId);
+  // the reservoir (if any) at a point, from the region's id image
+  const resIdAt = (() => {
+    const c = document.createElement("canvas"); c.width = resIdImg.width; c.height = resIdImg.height;
+    const ctx = c.getContext("2d", { willReadFrequently: true })!; ctx.drawImage(resIdImg, 0, 0);
+    const px = ctx.getImageData(0, 0, c.width, c.height).data, b = data.region.bounds;
+    return (lon: number, lat: number) => {
+      const u = (mx(lon) - mx(b.west)) / (mx(b.east) - mx(b.west)), v = (my(b.north) - my(lat)) / (my(b.north) - my(b.south));
+      if (u < 0 || u >= 1 || v < 0 || v >= 1) return 0;
+      return px[(Math.floor(v * c.height) * c.width + Math.floor(u * c.width)) * 4];
+    };
+  })();
   const regionMat = new THREE.ShaderMaterial({
     uniforms: {
+      ...catchments.uniforms,
       resId: { value: resIdTex }, resCov: { value: resCovTex }, lakes: { value: lakeTex }, fill: fillU, regionBox: { value: regionBox },
       cutouts: { value: cutouts },
       fogColor: { value: new THREE.Color(0xb9c8d4) }, fogNear: { value: 250 }, fogFar: { value: 650 },
@@ -148,12 +165,14 @@ async function main() {
       varying vec3 vN; varying vec2 vUv; varying float vE; varying vec3 vW; varying float vDepth;
       ${shadeGLSL}
       ${waterGLSL}
+      ${catchGLSL()}
       void main() {
         for (int k = 0; k < ${MAX_CUT}; k++) {
           vec4 b = cutouts[k];
           if (vW.x > b.x && vW.x < b.z && vW.z > b.y && vW.z < b.w) discard;
         }
         vec3 c = applyLakes(landColor(vE), vW);
+        c = applyCatch(c, vW);
         c = applyWater(c, waterId(vW), vW);
         c = light(c, vN);
         float fog = smoothstep(fogNear, fogFar, vDepth);
@@ -174,6 +193,7 @@ async function main() {
   // before the reservoir, draped with the USGS sheets of the time; the dam grows out of it and
   // a water plane climbs from the old valley floor to today's level.
   const valleyMats: THREE.ShaderMaterial[] = [];
+  const valleyMeshes: THREE.Mesh[] = [];
   const oldRiverMats: LineMaterial[] = [];
   const valleys = data.valleys.map((v, n) => {
     const [pre, maskImg, waterImg_, damImg, lakesImg, oldLakeImgs] = valleyFiles[n];
@@ -190,6 +210,7 @@ async function main() {
       topoA: { value: blankTex as THREE.Texture }, topoB: { value: blankTex as THREE.Texture }, topoK: { value: 0 }, topoMix: { value: 1 }, postA: { value: 0 }, postB: { value: 0 }, damP: { value: 0 }, alpha: { value: 1 },
       resId: { value: resIdTex }, resCov: { value: resCovTex }, lakes: { value: lakeTex }, fill: fillU, regionBox: { value: regionBox }, ownId: { value: v.reservoir_id }, detail: { value: tex(lakesImg) },
       fogColor: { value: new THREE.Color(0xb9c8d4) }, fogNear: { value: 250 }, fogFar: { value: 650 },
+      ...catchments.uniforms,
     };
     const mat = new THREE.ShaderMaterial({
       uniforms: u,
@@ -208,6 +229,7 @@ async function main() {
         varying vec3 vN; varying vec2 vUv; varying float vE; varying float vDepth; varying vec3 vW; varying float vIn;
         ${shadeGLSL}
         ${waterGLSL}
+        ${catchGLSL()}
         void main() {
           vec3 c = landColor(vE);
           // the reservoir's own bed, bare mud and stumps where a drought has drawn it down
@@ -244,13 +266,16 @@ async function main() {
             for (int k = 0; k < ${MAX_RES}; k++) if (k == id) f = fill[k];
             c = mix(c, WATER, f * smoothstep(0.35, 0.65, texture2D(resCov, regionUv(vW)).g));
           }
+          if (vIn < 0.5) c = applyCatch(c, vW);
           c = light(c, vN);
           float fog = smoothstep(fogNear, fogFar, vDepth);
           gl_FragColor = vec4(mix(c, fogColor, fog), alpha);
         }`,
     });
     valleyMats.push(mat);
-    scene.add(new THREE.Mesh(geo, mat));
+    const vMesh = new THREE.Mesh(geo, mat);
+    valleyMeshes.push(vMesh);
+    scene.add(vMesh);
 
     const b = box(v.bounds);
     const waterGeo = new THREE.PlaneGeometry(b.z - b.x, b.w - b.y);
@@ -519,6 +544,32 @@ async function main() {
   }
 
   const oldMaps = document.getElementById("oldmaps") as HTMLInputElement;
+  const catchOn = document.getElementById("catchOn") as HTMLInputElement;
+  catchOn.addEventListener("change", () => { catchments.uniforms.catchOn.value = catchOn.checked ? 1 : 0; });
+  // tap (not drag) the ground: trace everything upstream of that point
+  scene.add(catchments.label);
+  const rb_ = data.region.bounds;
+  const cellKm = ((rb_.east - rb_.west) * 111.2 * Math.cos((((rb_.north + rb_.south) / 2) * Math.PI) / 180)) / catchments.W;
+  const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+  let downAt: { x: number; y: number; t: number } | null = null, lastTap: THREE.Vector3 | null = null;
+  renderer.domElement.addEventListener("pointerdown", (e) => { downAt = { x: e.clientX, y: e.clientY, t: performance.now() }; });
+  renderer.domElement.addEventListener("pointerup", (e) => {
+    if (!downAt || Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y) > 6 || performance.now() - downAt.t > 500) return;
+    ndc.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
+    ray.setFromCamera(ndc, camera);
+    const ground = [...(tiles ? tiles.group.children.filter((m) => m.visible) : []), ...valleyMeshes];
+    const hit = ray.intersectObjects(ground, false)[0];
+    if (!hit) return;
+    const camD = camera.position.distanceTo(controls.target);
+    if (lastTap && hit.point.distanceTo(lastTap) < camD * 0.02) { catchments.clear(); lastTap = null; return; }
+    const [lon, lat] = frame.lonlat(hit.point.x, hit.point.z);
+    // on a reservoir that holds water: its whole catchment
+    const rid = resIdAt(lon, lat), res = data.reservoirs.find((r) => r.id === rid && fillFraction(r, year) > 0);
+    const area = catchments.trace(lon, lat, cellKm * cellKm, res ? rid : 0);
+    if (area === null) return;
+    lastTap = hit.point.clone();
+    catchments.show(hit.point.clone().add(new THREE.Vector3(0, camD * 0.01, 0)), area, waterUse(year), res?.name);
+  });
   // phones: the legend is a sheet behind a button
   const legendBtn = document.getElementById("legendBtn")!, legendEl = document.getElementById("legend")!;
   legendBtn.addEventListener("click", () => {
@@ -533,6 +584,7 @@ async function main() {
     const dry = storage(t).s;
     const fillNow = (r: Reservoir) => { const f = fillFraction(r, t); return f >= 1 ? dry : f; };
     for (const r of data.reservoirs) fillU.value[r.id] = fillNow(r);
+    catchments.update((id) => { const r = data.reservoirs.find((q) => q.id === id); return !!r && fillFraction(r, t) > 0; });
     const mapsOn = oldMaps.checked ? 1 : 0;
     // valleys: the dam rises during construction, then the water climbs from the old valley floor.
     // The old maps fade out as the land is cleared, from construction to the start of filling.
@@ -633,7 +685,15 @@ async function main() {
   });
   // for automated screenshots: window.catchment.setYear(1915)
   requestAnimationFrame(() => requestAnimationFrame(() => ((window as any).__ready = true)));
-  (window as any).catchment = { mapsPending: () => valleys.reduce((n, vv) => n + vv.maps.pending, 0) + (tiles?.pending ?? 0), setYear: (y: number) => { year = y; slider.value = String(y); }, go, camera, controls, frame };
+  (window as any).catchment = {
+    traceAt: (lon: number, lat: number) => {
+      const rid = resIdAt(lon, lat), res = data.reservoirs.find((r) => r.id === rid && fillFraction(r, year) > 0);
+      const a = catchments.trace(lon, lat, cellKm * cellKm, res ? rid : 0);
+      const [x, z] = frame.xz(lon, lat);
+      if (a !== null) catchments.show(new THREE.Vector3(x, yOf(groundAt(lon, lat)) + 0.5, z), a, waterUse(year), res?.name);
+      return a;
+    },
+    mapsPending: () => valleys.reduce((n, vv) => n + vv.maps.pending, 0) + (tiles?.pending ?? 0), setYear: (y: number) => { year = y; slider.value = String(y); }, go, camera, controls, frame };
 }
 
 const EXAG_STR = "3.0";

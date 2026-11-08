@@ -66,6 +66,10 @@ button.on { background: rgba(255,255,255,0.26); border-color: rgba(255,255,255,0
 .label.demand b { font-size: 13px; }
 .label.demand .cap-line { color: var(--muted); }
 .label.demand.short { border-color: #d9603b; }
+#legend .hint { max-width: 200px; font-size: 11px; margin-top: 4px; }
+.label.traced { background: var(--panel); border-left: 4px solid #f2b33d; border-radius: 6px; padding: 5px 8px;
+  font-size: 12px; line-height: 1.35; text-shadow: none; transform: translateY(-60%); max-width: 240px; white-space: normal; }
+.label.traced .hint { color: var(--muted); font-size: 11px; }
 .label.demand .drought { color: #f0a080; font-weight: 600; }
 
 #loading { position: fixed; inset: 0; display: grid; place-items: center; background: var(--bg);
