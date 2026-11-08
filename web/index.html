@@ -14,6 +14,7 @@
     <p>How New York City built its water supply</p>
   </header>
   <nav id="views">
+    <button id="storiesBtn" class="stories">Stories</button>
     <button data-view="region" class="on">Whole system</button>
     <button data-view="ashokan">Ashokan</button>
     <button data-view="croton">Croton</button>
@@ -23,6 +24,13 @@
     <button id="legendBtn" aria-controls="legend" aria-expanded="false">Legend</button>
   </nav>
   <aside id="captions" aria-live="polite"></aside>
+  <section id="story" hidden aria-live="polite">
+    <div class="story-head"><span id="storyNum"></span><button id="storyClose" aria-label="Close stories">✕</button></div>
+    <h2 id="storyTitle"></h2>
+    <p id="storyText"></p>
+    <div id="storyChart"></div>
+    <div class="story-nav"><button id="storyPrev">‹ Back</button><button id="storyNext">Next ›</button></div>
+  </section>
   <aside id="legend">
     <div><i class="sw croton"></i>Croton</div>
     <div><i class="sw catskill"></i>Catskill</div>

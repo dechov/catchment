@@ -79,6 +79,24 @@ button.on { background: rgba(255,255,255,0.26); border-color: rgba(255,255,255,0
   font-size: 18px; color: var(--muted); transition: opacity 0.5s; }
 
 #legendBtn { display: none; }
+button.stories { background: rgba(242, 179, 61, 0.25); border-color: rgba(242, 179, 61, 0.6); }
+#story { position: fixed; left: 16px; bottom: 96px; width: min(380px, calc(100vw - 32px)); background: var(--panel);
+  border-radius: 10px; padding: 12px 14px; border-left: 4px solid var(--amber); }
+#story[hidden] { display: none; }
+body.story-on #captions { display: none; }
+.story-head { display: flex; justify-content: space-between; align-items: center; color: var(--muted); font-size: 12px; }
+.story-head button { padding: 2px 8px; }
+#story h2 { margin: 4px 0 6px; font-size: 18px; }
+#story p { margin: 0 0 8px; font-size: 14px; line-height: 1.45; }
+.story-nav { display: flex; justify-content: space-between; gap: 8px; }
+.story-nav button { flex: 1; padding: 8px; }
+.chart { width: 100%; height: auto; margin: 2px 0 8px; font-size: 8px; }
+.chart text { fill: var(--muted); }
+.chart .grid { stroke: rgba(255,255,255,0.1); }
+.chart path { fill: none; stroke-width: 2; }
+.chart .use { stroke: #4b9be6; } .chart .supply { stroke: #fff; stroke-dasharray: 4 3; opacity: 0.8; }
+.chart .now { stroke: var(--amber); stroke-width: 1.5; }
+.chart .use-k { fill: #4b9be6; } .chart .supply-k { fill: #fff; }
 #app canvas { touch-action: none; }
 
 /* phones: title and views share the top as one scrolling row, the legend opens as a sheet,
@@ -100,6 +118,9 @@ button.on { background: rgba(255,255,255,0.26); border-color: rgba(255,255,255,0
   #legend label { padding: 6px 0; }
   #captions { top: auto; left: 8px; width: calc(100vw - 16px); bottom: calc(max(8px, env(safe-area-inset-bottom)) + 76px); }
   #captions .cap:nth-child(n+3) { display: none; }
+  #story { left: 8px; right: 8px; width: auto; bottom: calc(max(8px, env(safe-area-inset-bottom)) + 76px); padding: 10px 12px;
+    max-height: 48vh; overflow-y: auto; }
+  #story p { font-size: 13px; }
   #timebar { left: 8px; right: 8px; bottom: max(8px, env(safe-area-inset-bottom)); gap: 8px; padding: 8px 10px; }
   #play { width: 44px; height: 44px; }
   #year { font-size: 20px; width: 50px; }

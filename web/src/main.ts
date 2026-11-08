@@ -13,6 +13,7 @@ import { TileTerrain } from "./tiles";
 import { buildDemand, storage, waterUse } from "./demand";
 import { Catchments, catchGLSL, CatchInfo } from "./catchments";
 import { FlowParticles, buildPeaks, waterTableGrid } from "./flowfx";
+import { EPISODES, demandChart } from "./episodes";
 import {
   Reservoir, Aqueduct, Dam, Event, fillFraction, damProgress, damProgressFromYear, lineState,
   ERAS, SYSTEM_COLORS,
@@ -534,10 +535,10 @@ async function main() {
   let year = Number(params.get("t")) || T0;
   let playing = false;
   slider.value = String(year);
-  slider.oninput = () => { year = Number(slider.value); playing = false; playBtn.textContent = "▶"; setParam("t", String(Math.round(year))); };
+  slider.oninput = () => { year = Number(slider.value); playing = false; playTo = null; playBtn.textContent = "▶"; setParam("t", String(Math.round(year))); };
   playBtn.onclick = () => {
     if (year >= T1 - 0.01) year = T0;
-    playing = !playing; playBtn.textContent = playing ? "❚❚" : "▶";
+    playTo = null; playing = !playing; playBtn.textContent = playing ? "❚❚" : "▶";
   };
 
   function setParam(k: string, v: string) {
@@ -659,19 +660,57 @@ async function main() {
     });
   }
 
+  // ---- stories ---------------------------------------------------------------------------
+  let playTo: number | null = null, storySpeed = 4, storyChartOn = false, storyAt = -1;
+  const storyEl = document.getElementById("story")!, storyChart = document.getElementById("storyChart")!;
+  const showStory = (i: number) => {
+    storyAt = (i + EPISODES.length) % EPISODES.length;
+    const ep = EPISODES[storyAt];
+    storyEl.hidden = false; document.body.classList.add("story-on");
+    document.getElementById("storyNum")!.textContent = `Story ${storyAt + 1} of ${EPISODES.length}`;
+    document.getElementById("storyTitle")!.textContent = ep.title;
+    document.getElementById("storyText")!.textContent = ep.text;
+    storyChartOn = ep.chart === "demand";
+    storyChart.innerHTML = storyChartOn ? demandChart(year) : "";
+    if (ep.catchments !== undefined) { catchOn.checked = ep.catchments || catchOn.checked; catchments.uniforms.catchOn.value = catchOn.checked ? 1 : 0; }
+    catchments.clear();
+    go(ep.view);
+    if (Array.isArray(ep.years)) {
+      year = ep.years[0]; playTo = ep.years[1];
+      storySpeed = Math.max(1, (ep.years[1] - ep.years[0]) / 9);   // about nine seconds
+      playing = true; playBtn.textContent = "❚❚";
+    } else { year = ep.years; playTo = null; playing = false; playBtn.textContent = "▶"; }
+    slider.value = String(year);
+    setParam("story", String(storyAt + 1));
+  };
+  const closeStory = () => { storyEl.hidden = true; document.body.classList.remove("story-on"); storyChartOn = false; playTo = null; setParam("story", "0"); };
+  document.getElementById("storiesBtn")!.onclick = () => (storyEl.hidden ? showStory(Math.max(0, storyAt)) : closeStory());
+  document.getElementById("storyNext")!.onclick = () => showStory(storyAt + 1);
+  document.getElementById("storyPrev")!.onclick = () => showStory(storyAt - 1);
+  document.getElementById("storyClose")!.onclick = closeStory;
+  addEventListener("keydown", (e) => {
+    if (storyEl.hidden) return;
+    if (e.key === "ArrowRight") showStory(storyAt + 1);
+    else if (e.key === "ArrowLeft") showStory(storyAt - 1);
+    else if (e.key === "Escape") closeStory();
+  });
+
   // ---- loop ----------------------------------------------------------------------------
   go(params.get("view") ?? "region", true);
   if (params.get("ug") === "1") setUnderground(true);
+  if (Number(params.get("story")) > 0) showStory(Number(params.get("story")) - 1);
   const clock = new THREE.Clock();
   document.getElementById("loading")!.style.opacity = "0";
   setTimeout(() => document.getElementById("loading")!.remove(), 600);
   renderer.setAnimationLoop(() => {
     const dt = Math.min(0.1, clock.getDelta());
     if (playing) {
-      year = Math.min(T1, year + dt * PLAY_YEARS_PER_SEC);
+      const end = playTo ?? T1;
+      year = Math.min(end, year + dt * (playTo ? storySpeed : PLAY_YEARS_PER_SEC));
       slider.value = String(year);
-      if (year >= T1) { playing = false; playBtn.textContent = "▶"; }
+      if (year >= end) { playing = false; playTo = null; playBtn.textContent = "▶"; }
     }
+    if (storyChartOn) storyChart.innerHTML = demandChart(year);
     applyYear(year);
     for (const m of lineMats) m.dashOffset -= dt * 1.2;   // water flowing downstream
     // lines on the ground lift a little more the further away the camera is, so the depth
@@ -689,7 +728,7 @@ async function main() {
     controls.update();
     tiles?.update(camera);
     peaks.update(camD);
-    drops.points.visible = catchOn.checked && camD > 15;
+    drops.points.visible = catchOn.checked && camD > 8 && camD < 160;
     if (drops.points.visible) drops.update(dt, (id) => { const r = resById.get(id); return !!r && fillFraction(r, year) > 0; });
     // fog follows the camera's distance, so the horizon fades whether close in or far out
     const fogD = Math.max(60, camD);

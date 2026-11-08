@@ -79,7 +79,9 @@ export class FlowParticles {
       this.pos[k * 3 + 2] = this.zs[y] + (this.zs[ny] - this.zs[y]) * f;
       const c = first[i] && active(first[i]) ? this.colourOf(first[i]) : null;
       const fade = Math.min(1, this.life[k] / 1.5, (8 - this.life[k]) / 0.5 + 0.2);
-      this.col[k * 3] = (c ? c.r : 0.75) * fade; this.col[k * 3 + 1] = (c ? c.g : 0.88) * fade; this.col[k * 3 + 2] = (c ? c.b : 1) * fade;
+      // drops bound for a city reservoir in its system's colour; the rest faint
+      const a = c ? fade : fade * 0.45;
+      this.col[k * 3] = (c ? c.r : 0.75) * a; this.col[k * 3 + 1] = (c ? c.g : 0.88) * a; this.col[k * 3 + 2] = (c ? c.b : 1) * a;
     }
     this.points.geometry.attributes.position.needsUpdate = true;
     this.points.geometry.attributes.color.needsUpdate = true;

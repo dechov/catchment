@@ -14,14 +14,14 @@ import { CSS2DObject } from "three/examples/jsm/renderers/CSS2DRenderer.js";
 import { Frame, yOf } from "./geo";
 
 /** [year, million gallons a day drawn from the upland system] */
-const USE: [number, number][] = [
+export const USE: [number, number][] = [
   [1842, 12], [1850, 30], [1860, 50], [1870, 75], [1880, 95], [1890, 150], [1900, 250], [1910, 340],
   [1917, 450], [1920, 550], [1930, 800], [1940, 950], [1949, 1050], [1950, 1000], [1960, 1150],
   [1963, 1200], [1965, 1050], [1967, 1150], [1970, 1300], [1979, 1500], [1990, 1420], [2000, 1240],
   [2010, 1040], [2020, 980], [2030, 980],
 ];
 /** [year, MGD the system could dependably deliver]: steps as each source came in */
-const SUPPLY: [number, number][] = [
+export const SUPPLY: [number, number][] = [
   [1842, 40], [1873, 70], [1890, 250], [1906, 340], [1915, 600], [1927, 900], [1951, 1000],
   [1955, 1150], [1964, 1290], [2030, 1290],
 ];
