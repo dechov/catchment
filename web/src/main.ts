@@ -17,6 +17,8 @@ import {
 interface Valley {
   id: string; bounds: Bounds; water_level_m: number; reservoir_id: number;
   maps: { title: string; year: number }[]; synthetic: boolean;
+  /** dated map editions, oldest first: "pre" ones before the reservoir, "post" ones after */
+  editions: { file: string; phase: "pre" | "post"; year: number | null; maps: string[] }[];
   /** smaller, older lakes the reservoir drowned (Croton Lake behind the 1842 dam) */
   old_lakes: { file: string; level_m: number; name: string; reservoir_id: number }[];
   /** the rivers before the reservoir, traced from the old maps */
@@ -46,7 +48,7 @@ async function main() {
   const frame = new Frame(data.region.bounds);
   const loadingEl = document.getElementById("loading")!;
   let nLoaded = 0;
-  const nFiles = 5 + data.valleys.length * 6;
+  const nFiles = 5 + data.valleys.length * 5;
   const count = <T,>(p: Promise<T>) => p.then((v) => { loadingEl.textContent = `Loading terrain… ${++nLoaded}/${nFiles}`; return v; });
   const [region, resIdImg, waterImg, routes, rivers, valleyFiles] = await Promise.all([
     count(HeightGrid.load(D + "region_height.png", data.region.bounds)),
@@ -59,7 +61,6 @@ async function main() {
       count(loadImage(D + `${v.id}_mask.png`)),
       count(loadImage(D + `${v.id}_water.png`)),
       count(loadImage(D + `${v.id}_dam.png`)),
-      count(loadImage(D + `${v.id}_topo.jpg`)),
       count(loadImage(D + `${v.id}_lakes.png`)),
       Promise.all(v.old_lakes.map((o) => loadImage(D + o.file))),
     ]))),
@@ -164,7 +165,7 @@ async function main() {
   const valleyMats: THREE.ShaderMaterial[] = [];
   const oldRiverMats: LineMaterial[] = [];
   const valleys = data.valleys.map((v, n) => {
-    const [pre, maskImg, waterImg_, damImg, topoImg, lakesImg, oldLakeImgs] = valleyFiles[n];
+    const [pre, maskImg, waterImg_, damImg, lakesImg, oldLakeImgs] = valleyFiles[n];
     const maskData = imageRed(maskImg, pre.w, pre.h);
     const damData = imageRed(damImg, pre.w, pre.h);
     const step = q === "high" ? 1 : low ? 4 : 2;
@@ -175,7 +176,7 @@ async function main() {
     const geo = gridGeometry(pre, frame, step, { damH: (i) => (modelled ? 0 : damData[i]), inRes: (i) => maskData[i] / 255 },
       { at: (lo, la) => region.at(lo, la), px: Math.round(pre.w / 40) });
     const u = {
-      topo: { value: tex(topoImg) }, topoMix: { value: 1 }, damP: { value: 0 }, alpha: { value: 1 },
+      topoA: { value: blankTex as THREE.Texture }, topoB: { value: blankTex as THREE.Texture }, topoK: { value: 0 }, topoMix: { value: 1 }, damP: { value: 0 }, alpha: { value: 1 },
       resId: { value: resIdTex }, resCov: { value: resCovTex }, lakes: { value: lakeTex }, fill: fillU, regionBox: { value: regionBox }, ownId: { value: v.reservoir_id }, detail: { value: tex(lakesImg) },
       fogColor: { value: new THREE.Color(0xb9c8d4) }, fogNear: { value: 250 }, fogFar: { value: 650 },
     };
@@ -191,7 +192,7 @@ async function main() {
           gl_Position = projectionMatrix * mv;
         }`,
       fragmentShader: /* glsl */ `
-        uniform sampler2D topo; uniform float topoMix; uniform int ownId; uniform sampler2D detail;
+        uniform sampler2D topoA; uniform sampler2D topoB; uniform float topoK; uniform float topoMix; uniform int ownId; uniform sampler2D detail;
         uniform vec3 fogColor; uniform float fogNear; uniform float fogFar; uniform float alpha;
         varying vec3 vN; varying vec2 vUv; varying float vE; varying float vDepth; varying vec3 vW; varying float vIn;
         ${shadeGLSL}
@@ -206,8 +207,14 @@ async function main() {
             c = mix(c, LAKE, smoothstep(0.3, 0.6, l.r));
             c = mix(c, WATER * 0.85, smoothstep(0.35, 0.65, l.b));
           }
-          vec3 map = texture2D(topo, vUv).rgb;
-          float has = step(0.02, map.r + map.g + map.b);   // outside the sheets' neatlines
+          // two map editions, crossfading from A to B (where only one has a sheet, that one)
+          vec3 mA = texture2D(topoA, vUv).rgb, mB = texture2D(topoB, vUv).rgb;
+          float hA = step(0.02, mA.r + mA.g + mA.b), hB = step(0.02, mB.r + mB.g + mB.b);   // outside the neatlines: 0
+          float k = hB * (hA > 0.5 ? topoK : step(0.001, topoK));
+          vec3 map = mix(mA, mB, k);
+          // later editions print woods bright green and towns red: tone them toward the old sheets
+          map = mix(vec3(dot(map, vec3(0.3, 0.59, 0.11))), map, 0.7);
+          float has = max(hA * (1.0 - k), hB * k);
           // feather the map out toward the patch edges so it doesn't read as a pasted card
           float edge = smoothstep(0.0, 0.06, min(min(vUv.x, 1.0 - vUv.x), min(vUv.y, 1.0 - vUv.y)));
           c = mix(c, map * 1.05, topoMix * has * edge * 0.85);
@@ -273,9 +280,18 @@ async function main() {
       const g = pre.at(lon, lat) + damGrid.at(lon, lat);
       return maskGrid.at(lon, lat) > 127 ? Math.max(v.water_level_m, g) : g;
     };
-    // the old map stays up through the dam-building years and fades out while the valley floods
     const fadeFrom = res.fill_start ?? (res.in_service ?? 9999) - 1;
     const fadeTo = Math.max(fadeFrom + 2, res.fill_end ?? res.in_service ?? fadeFrom + 2);
+    // the map editions: each fades in over two years from the year it was printed. The first
+    // map printed after the reservoir instead comes in once it is full, so the dated pre-dam
+    // sheet stays under the rising water and a map of the reservoir never shows an empty valley.
+    const firstPost = v.editions.findIndex((e) => e.phase === "post");
+    const edWin = v.editions.map((e, i): [number, number] => {
+      if (i === 0) return [-Infinity, -Infinity];
+      if (i === firstPost && v.reservoir_id >= 0) return [fadeTo - 1, fadeTo + 1];
+      const y = e.year ?? 0; return [y - 1, y + 1];
+    });
+    const maps = new MapStack(v.editions.map((e) => D + e.file), tex);
     // the old rivers, on the pre-dam ground
     const orPts: number[] = [];
     for (const line of v.old_rivers) {
@@ -297,7 +313,7 @@ async function main() {
     orMat.resolution.set(innerWidth, innerHeight); oldRiverMats.push(orMat);
     const oldRiver = new LineSegments2(orGeo, orMat);
     if (orPts.length) scene.add(oldRiver);
-    return { v, res, u, water, wU, bed, inside, maskGrid, groundNow, fadeFrom, fadeTo, oldLakes, pre, oldRiver };
+    return { v, res, u, water, wU, bed, inside, maskGrid, groundNow, edWin, maps, oldLakes, pre, oldRiver };
   });
   // modern ground anywhere: a valley patch where there is one (finer), else the region
   const groundAt = (lon: number, lat: number) => {
@@ -491,7 +507,16 @@ async function main() {
     for (const vv of valleys) {
       const f = fillFraction(vv.res, t);
       vv.u.damP.value = damProgress(vv.res, t);
-      vv.u.topoMix.value = mapsOn * (1 - Math.min(1, Math.max(0, (t - vv.fadeFrom) / (vv.fadeTo - vv.fadeFrom))));
+      // the edition in force, and the next one while it fades in
+      let a = 0;
+      while (a + 1 < vv.edWin.length && t >= vv.edWin[a + 1][1]) a++;
+      const nxt = a + 1 < vv.edWin.length && t > vv.edWin[a + 1][0] ? a + 1 : -1;
+      const [tA, tB] = [vv.maps.get(a), nxt >= 0 ? vv.maps.get(nxt) : null];
+      vv.maps.keep([a, nxt, a + 1]);   // and preload the next
+      if (tA) vv.u.topoA.value = tA;
+      vv.u.topoB.value = tB ?? blankTex;
+      vv.u.topoK.value = tB ? (t - vv.edWin[nxt][0]) / (vv.edWin[nxt][1] - vv.edWin[nxt][0]) : 0;
+      vv.u.topoMix.value = mapsOn;
       vv.water.position.y = yOf(vv.bed + (vv.v.water_level_m - vv.bed) * Math.sqrt(f)) + 0.002;
       vv.wU.alpha.value = f > 0 ? 1 : 0;
       for (const ol of vv.oldLakes) ol.u.alpha.value = (ol.res ? fillFraction(ol.res, t) > 0 : f < 0.5) ? 1 : 0;
@@ -568,10 +593,37 @@ async function main() {
   });
   // for automated screenshots: window.catchment.setYear(1915)
   requestAnimationFrame(() => requestAnimationFrame(() => ((window as any).__ready = true)));
-  (window as any).catchment = { setYear: (y: number) => { year = y; slider.value = String(y); }, go, camera, controls, frame };
+  (window as any).catchment = { mapsPending: () => valleys.reduce((n, vv) => n + vv.maps.pending, 0), setYear: (y: number) => { year = y; slider.value = String(y); }, go, camera, controls, frame };
 }
 
 const EXAG_STR = "3.0";
+const blankTex: THREE.Texture = new THREE.DataTexture(new Uint8Array(4), 1, 1); blankTex.needsUpdate = true;
+
+/** A valley's map editions, loaded when first wanted; textures not wanted are freed (each is
+ *  ~25 MB of GPU memory, and a phone can't hold the dozens of them at once). */
+class MapStack {
+  private texs: (THREE.Texture | null)[];
+  private imgs: (HTMLImageElement | null)[];
+  private loading = new Set<number>();
+  pending = 0;
+  constructor(private urls: string[], private mk: (img: HTMLImageElement) => THREE.Texture) {
+    this.texs = urls.map(() => null); this.imgs = urls.map(() => null);
+  }
+  get(i: number): THREE.Texture | null {
+    if (i < 0 || i >= this.urls.length) return null;
+    if (this.texs[i]) return this.texs[i];
+    if (this.imgs[i]) return (this.texs[i] = this.mk(this.imgs[i]!));
+    if (!this.loading.has(i)) {
+      this.loading.add(i); this.pending++;
+      loadImage(this.urls[i]).then((img) => { this.imgs[i] = img; }).finally(() => { this.pending--; });
+    }
+    return null;
+  }
+  keep(want: number[]) {
+    for (const i of want) this.get(i);
+    this.texs.forEach((t, i) => { if (t && !want.includes(i)) { t.dispose(); this.texs[i] = null; } });
+  }
+}
 
 function imageRed(img: HTMLImageElement, w: number, h: number): Uint8Array {
   const c = document.createElement("canvas"); c.width = w; c.height = h;

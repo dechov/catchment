@@ -60,15 +60,13 @@ flat = np.hypot(gx, gy) < 0.05
 full_ids = np.zeros(re_.shape, np.uint8)
 res_out = []
 from PIL import ImageDraw
+sys.path.insert(0, f"{ROOT}/pipeline")
+from osm_rings import water_rings
 # OpenStreetMap water polygons (ways and multipolygon outers), in full-resolution pixels
 osm_polys = []
 for e in json.load(open(f"{ROOT}/data/osm/lakes.json"))["elements"] + json.load(open(f"{ROOT}/data/osm/lake_relations.json"))["elements"]:
-    rings = []
-    if e["type"] == "way" and e.get("geometry") and len(e["geometry"]) > 3: rings = [e["geometry"]]
-    elif e["type"] == "relation":
-        rings = [m["geometry"] for m in e.get("members", []) if m.get("role") == "outer" and m.get("geometry")]
-    for r in rings:
-        pts = [lonlat_to_px(rm, g["lon"], g["lat"]) for g in r]
+    for r in water_rings(e)[0]:
+        pts = [lonlat_to_px(rm, lo, la) for lo, la in r]
         xs, ys = [p[0] for p in pts], [p[1] for p in pts]
         osm_polys.append((min(xs), min(ys), max(xs), max(ys), pts))
 def osm_footprint(area):
@@ -160,7 +158,7 @@ Image.fromarray(np.stack([ids, np.round(cov * 255).astype(np.uint8), np.zeros_li
 
 # --- valley details: before/after terrain + old maps -------------------------------------
 VALLEYS = ["ashokan", "new-croton", "kensico", "schoharie", "rondout", "neversink", "pepacton", "cannonsville", "city"]
-MESH_MAX, TOPO_MAX = 1280, 3072
+MESH_MAX, TOPO_MAX = 1280, 2560
 valleys_out = []
 for vid in VALLEYS:
     if not os.path.exists(f"{tdir}/{vid}_predam_meta.json"):
@@ -185,8 +183,16 @@ for vid in VALLEYS:
     Image.fromarray((water_m * 255).astype(np.uint8)).save(f"{out}/{vid}_water.png", optimize=True)
     dam_h = np.where((np.asarray(mask_img) > 127) & (now_s > lvl + 1), np.clip(now_s - pre_s, 0, 255), 0)
     Image.fromarray(np.round(dam_h).astype(np.uint8)).save(f"{out}/{vid}_dam.png", optimize=True)
-    topo = Image.open(f"{tdir}/{vid}_topo_predam.png").convert("RGB")
-    topo.thumbnail((TOPO_MAX, TOPO_MAX)); topo.save(f"{out}/{vid}_topo.jpg", quality=74, optimize=True)
+    # the dated map editions (pipeline/map_editions.py), else the one pre-reservoir composite
+    ep = f"{tdir}/{vid}_editions.json"
+    eds = json.load(open(ep))["editions"] if os.path.exists(ep) else \
+        [dict(file=f"{vid}_topo_predam.png", phase="pre", year=None, sheets=[])]
+    editions = []
+    for i, ed in enumerate(eds):
+        topo = Image.open(f"{tdir}/{ed['file']}").convert("RGB")
+        topo.thumbnail((TOPO_MAX, TOPO_MAX)); topo.save(f"{out}/{vid}_topo{i}.jpg", quality=72, optimize=True)
+        editions.append(dict(file=f"{vid}_topo{i}.jpg", phase=ed["phase"], year=ed["year"],
+                             maps=sorted({f"{s['title'].replace('USGS ', '').replace('-scale Quadrangle for', '')}" for s in ed["sheets"]})))
     rname = {"ashokan": "Ashokan", "new-croton": "New Croton", "kensico": "Kensico", "schoharie": "Schoharie",
              "rondout": "Rondout", "neversink": "Neversink", "pepacton": "Pepacton", "cannonsville": "Cannonsville", "city": None}[vid]
     rid = next((r["id"] for r in res_out if r["name"] == f"{rname} Reservoir"), -1)   # -1: the city, no reservoir
@@ -202,7 +208,8 @@ for vid in VALLEYS:
     old_rivers = [f["geometry"]["coordinates"] for f in json.load(open(tp))["features"]] if os.path.exists(tp) else []
     valleys_out.append(dict(id=vid, bounds=bounds(vm), water_level_m=pm["water_level_m"], reservoir_id=rid, old_lakes=old,
                             old_rivers=old_rivers,
-                            maps=[dict(title=m["title"], year=m["year"]) for m in maps],
+                            maps=[dict(title=t, year=y) for t, y in sorted({(m["title"], m["year"]) for m in maps + [x for ed in eds for x in ed["sheets"]]}, key=lambda m: m[1])],
+                            editions=editions,
                             synthetic=pm.get("synthetic", vid != "ashokan")))
     print("valley", vid, vw, "x", vh)
 

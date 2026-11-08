@@ -66,7 +66,9 @@ Limits: the valley floor between the creeks is interpolated, not surveyed, so sm
 
 ![Pepacton valley in 1940, on the 1904–1946 USGS sheets](docs/scene_pepacton_1940.jpg)
 
-In the scene each valley's dam rises out of the ground, the water climbs from the old floor to today's level, and the old map stays on the ground through construction and fades while the valley floods.
+In the scene each valley's dam rises out of the ground and the water climbs from the old floor to today's level.
+
+**Map editions.** `pipeline/map_editions.py` builds a stack of dated map composites for each patch (Ashokan, the seven valleys and the city): for each year window, the latest sheet of every quadrangle printed in it. Pre-reservoir editions are shown before the dam; the first edition printed after it comes in once the reservoir is full, and later ones (into the 1990s) take over from the year they were printed, so a patch is never left as bare terrain. The scene loads each edition only when its years come near and frees the rest.
 
 ### Also in the scene
 
@@ -74,7 +76,7 @@ In the scene each valley's dam rises out of the ground, the water climbs from th
 - **Dams.** Each dam is built along its crest line from OpenStreetMap (`data/osm/dams.json`), down to the ground without it, with a cross-section by its NID type: a stone gravity wall for masonry and concrete dams, an embankment with riprap and grass for earth dams (`web/src/dams.ts`). They rise during construction.
 - **Sea, Sound and Hudson.** `osm_water.py` floods the sea from OpenStreetMap's coastline (`data/osm/coastline.json`) and adds the tidal Hudson above Yonkers from the flat, near-sea-level ground along its centreline.
 - **Reservoir shores.** Where OpenStreetMap maps a reservoir, its polygon replaces the 28 m outline found in the terrain. The Manhattan reservoirs that are gone are footprints in `data/city_reservoirs.geojson` (Yorkville Receiving and Murray Hill from a Manhattan street-grid model; the Central Park Reservoir from OSM).
-- **The city.** A ~7 m patch over Manhattan, Brooklyn and the Bronx with the 1900 USGS Harlem, Brooklyn, Paterson and Staten Island sheets (`valley.py city`), shown until about 1930.
+- **The city.** A ~7 m patch over Manhattan, Brooklyn and the Bronx with USGS editions from 1891, 1900, 1947, 1966 and 1995 (`valley.py city`, `map_editions.py`).
 
 ![Lower Manhattan on the 1900 USGS sheets](docs/scene_lower_manhattan_1880.jpg)
 
@@ -99,6 +101,7 @@ python pipeline/old_maps.py out/oldmaps
 for v in new-croton kensico schoharie rondout neversink pepacton cannonsville city; do
   python pipeline/valley.py $v out/terrain out/oldmaps out/tiles
 done
+python pipeline/map_editions.py out/terrain out/oldmaps   # dated editions (~1 GB more scans)
 # web data (scene.json first, then the OpenStreetMap layers, which read it)
 python pipeline/export_web.py out/terrain web/public/data
 python pipeline/osm_water.py web/public/data --terrain out/terrain

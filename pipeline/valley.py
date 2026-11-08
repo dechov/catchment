@@ -100,19 +100,23 @@ mask = lab == (int(np.argmax(sizes)) + 1)
 # Today's terrain can hold one reservoir at two slightly different heights (surveys stitched
 # together: Rondout's north arm), so add the OpenStreetMap outline(s) that overlap it.
 from PIL import ImageDraw
+sys.path.insert(0, f"{ROOT}/pipeline")
+from osm_rings import water_rings
 osm_img = Image.new("L", (W, H)); dr_ = ImageDraw.Draw(osm_img)
 for e in json.load(open(f"{ROOT}/data/osm/lakes.json"))["elements"] + json.load(open(f"{ROOT}/data/osm/lake_relations.json"))["elements"]:
-    rings = [e["geometry"]] if e["type"] == "way" and e.get("geometry") else \
-        [m["geometry"] for m in e.get("members", []) if m.get("role") == "outer" and m.get("geometry")] if e["type"] == "relation" else []
-    for ring in rings:
-        pts = [to_px(g["lon"], g["lat"]) for g in ring]
-        if len(pts) < 4 or max(x for x, _ in pts) < 0 or min(x for x, _ in pts) > W or max(y for _, y in pts) < 0 or min(y for _, y in pts) > H:
+    outers, inners = water_rings(e)
+    for ring in outers:
+        pts = [to_px(lo, la) for lo, la in ring]
+        if max(x for x, _ in pts) < 0 or min(x for x, _ in pts) > W or max(y for _, y in pts) < 0 or min(y for _, y in pts) > H:
             continue
         one = Image.new("L", (W, H)); ImageDraw.Draw(one).polygon(pts, fill=1)
         o = np.asarray(one) > 0
         if o.sum() and (o & mask).sum() / o.sum() > 0.5:
             dr_.polygon(pts, fill=255)
-osm_m = np.asarray(osm_img) > 0
+            for h in inners:   # islands
+                dr_.polygon([to_px(lo, la) for lo, la in h], fill=0)
+# a mapped outline can only add ground that stands near the water: never a hillside
+osm_m = (np.asarray(osm_img) > 0) & (elev < level + 6)
 if osm_m.sum():
     print(f"OSM outline adds {(osm_m & ~mask).sum() * mpp * mpp / 1e6:.2f} km2")
     mask |= osm_m

@@ -72,24 +72,8 @@ NYC_EXTRA = {"Muscoot Reservoir", "Diverting Reservoir", "East Branch Reservoir"
 res_img = Image.open(f"{out}/region_reservoirs.png").convert("RGB").resize((W, H), Image.NEAREST)
 res_px = res_img.load()
 
-def rings_of_relation(e):
-    """Assemble closed outer/inner rings from a multipolygon's member ways."""
-    rings = {"outer": [], "inner": []}
-    for role in rings:
-        segs = [geom(m) for m in e.get("members", []) if m["type"] == "way" and m.get("role", "outer") == role and m.get("geometry")]
-        while segs:
-            ring = segs.pop()
-            for _ in range(len(segs) + 1):
-                if ring[0] == ring[-1]: break
-                for i, s in enumerate(segs):
-                    if s[0] == ring[-1]: ring += s[1:]
-                    elif s[-1] == ring[-1]: ring += s[::-1][1:]
-                    elif s[-1] == ring[0]: ring = s + ring[1:]
-                    elif s[0] == ring[0]: ring = s[::-1] + ring[1:]
-                    else: continue
-                    segs.pop(i); break
-            if len(ring) >= 4: rings[role].append(ring)
-    return rings["outer"], rings["inner"]
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from osm_rings import water_rings as rings_of_relation
 
 def nyc_overlap(outer):
     """Share of the polygon's sampled pixels that fall on a mapped NYC reservoir."""
