@@ -151,6 +151,7 @@ async function main() {
       ...catchments.uniforms,
       resId: { value: resIdTex }, resCov: { value: resCovTex }, lakes: { value: lakeTex }, fill: fillU, regionBox: { value: regionBox },
       cutouts: { value: cutouts },
+      photo: { value: blankTex as THREE.Texture }, photoOn: { value: 0 },
       fogColor: { value: new THREE.Color(0xb9c8d4) }, fogNear: { value: 250 }, fogFar: { value: 650 },
       alpha: { value: 1 },
     },
@@ -162,7 +163,7 @@ async function main() {
         gl_Position = projectionMatrix * mv;
       }`,
     fragmentShader: /* glsl */ `
-      uniform vec4 cutouts[${MAX_CUT}];
+      uniform vec4 cutouts[${MAX_CUT}]; uniform sampler2D photo; uniform float photoOn;
       uniform vec3 fogColor; uniform float fogNear; uniform float fogFar; uniform float alpha;
       varying vec3 vN; varying vec2 vUv; varying float vE; varying vec3 vW; varying float vDepth;
       ${shadeGLSL}
@@ -174,6 +175,7 @@ async function main() {
           if (vW.x > b.x && vW.x < b.z && vW.z > b.y && vW.z < b.w) discard;
         }
         vec3 c = applyLakes(landColor(vE), vW);
+        if (photoOn > 0.5) c = texture2D(photo, vUv).rgb * 1.1;   // today's aerial photograph
         c = applyCatch(c, vW);
         c = applyWater(c, waterId(vW), vW);
         c = light(c, vN);
@@ -549,6 +551,9 @@ async function main() {
   const oldMaps = document.getElementById("oldmaps") as HTMLInputElement;
   const catchOn = document.getElementById("catchOn") as HTMLInputElement;
   catchOn.addEventListener("change", () => { catchments.uniforms.catchOn.value = catchOn.checked ? 1 : 0; });
+  const photosOn = document.getElementById("photosOn") as HTMLInputElement;
+  if (!tiles) photosOn.parentElement!.style.display = "none";
+  photosOn.addEventListener("change", () => tiles?.setPhotos(photosOn.checked));
   // drops running down the streams, and the named peaks
   const resById = new Map(data.reservoirs.map((r) => [r.id, r]));
   const drops = new FlowParticles(catchments.W, catchments.H, catchments.dir, catchments.acc, catchments.first, region,

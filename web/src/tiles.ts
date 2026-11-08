@@ -9,11 +9,14 @@ import { Frame, yOf } from "./geo";
 // ?tilesrc=<base> serves the same tiles from elsewhere (a local mirror for offline checks)
 const BASE = new URLSearchParams(location.search).get("tilesrc") ?? "https://elevation-tiles-prod.s3.amazonaws.com/terrarium";
 const tileUrl = (z: number, x: number, y: number) => `${BASE}/${z}/${x}/${y}.png`;
+// USGS National Map aerial imagery (public domain); ArcGIS tile order is z/y/x
+const PHOTO = (z: number, x: number, y: number) => `https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/${z}/${y}/${x}`;
 const R = 6378137, WORLD = 2 * Math.PI * R;
 
 interface Node {
   z: number; x: number; y: number;
   mesh: THREE.Mesh | null; state: "idle" | "loading" | "ready" | "failed";
+  photo?: THREE.Texture | null; photoState?: "loading" | "ready" | "failed";
   kids: Node[] | null;
   center: THREE.Vector3; size: number;   // scene units (km)
 }
@@ -144,6 +147,16 @@ export class TileTerrain {
     mesh.visible = false; mesh.frustumCulled = true;
     if (n.state !== "loading") { geo.dispose(); return; }   // pruned while loading
     n.mesh = mesh; n.state = "ready";
+    // today's aerial photograph for this tile, when the photo layer is on (see setPhotos)
+    mesh.onBeforeRender = (_r, _s, _c, _g, mat) => {
+      const u = (mat as THREE.ShaderMaterial).uniforms;
+      if (!u?.photo) return;
+      const on = this.photos && n.photo;
+      if (this.photos && !n.photoState) this.loadPhoto(n);
+      u.photo.value = on ? n.photo : this.blank;
+      u.photoOn.value = on ? 1 : 0;
+      (mat as THREE.ShaderMaterial).uniformsNeedUpdate = true;
+    };
     this.group.add(mesh);
   }
 
@@ -157,7 +170,24 @@ export class TileTerrain {
     if (n.kids) for (const k of n.kids) { this.prune(k); this.drop(k); }
     n.kids = null;
   }
+  private photos = false;
+  private blank = (() => { const t = new THREE.DataTexture(new Uint8Array(4), 1, 1); t.needsUpdate = true; return t; })();
+  /** Drape today's aerial photographs (USGS imagery, public domain) over the tiles. */
+  setPhotos(on: boolean) { this.photos = on; }
+  private loadPhoto(n: Node) {
+    n.photoState = "loading";
+    const img = new Image(); img.crossOrigin = "anonymous";
+    img.onload = () => {
+      if (!n.mesh) return;
+      const t = new THREE.Texture(img); t.colorSpace = THREE.NoColorSpace; t.needsUpdate = true;
+      n.photo = t; n.photoState = "ready";
+    };
+    img.onerror = () => { n.photoState = "failed"; };
+    img.src = PHOTO(Math.min(n.z, 16), n.x >> Math.max(0, n.z - 16), n.y >> Math.max(0, n.z - 16));
+  }
+
   private drop(n: Node) {
+    n.photo?.dispose(); n.photo = null; n.photoState = undefined;
     if (n.mesh) { this.group.remove(n.mesh); n.mesh.geometry.dispose(); n.mesh = null; }
     if (n.state === "loading") { const i = this.queue.indexOf(n); if (i >= 0) this.queue.splice(i, 1); }
     n.state = "idle";
