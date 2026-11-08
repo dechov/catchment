@@ -78,6 +78,7 @@ export class Catchments {
   private lutTex: THREE.DataTexture;
   private lutKey = "";
   label: CSS2DObject; private labelDiv: HTMLDivElement;
+  private panel: HTMLElement; private panelText: HTMLElement;
 
   constructor(img: HTMLImageElement, info: CatchInfo, private bounds: Bounds, sysColorOf: (id: number) => THREE.Color) {
     this.W = img.width; this.H = img.height;
@@ -102,10 +103,14 @@ export class Catchments {
       flow: { value: flowTex }, flowTexel: { value: new THREE.Vector2(1 / this.W, 1 / this.H) }, catchLut: { value: this.lutTex },
       catchOn: { value: 1 }, traced: { value: this.tracedTex }, tracedOn: { value: 0 },
     };
+    // the tapped spot gets a small open ring, so the ground there stays visible; the figures go
+    // in a panel fixed above the time bar
     this.labelDiv = document.createElement("div");
-    this.labelDiv.className = "label traced";
+    this.labelDiv.className = "tap-ring";
     this.label = new CSS2DObject(this.labelDiv);
     this.label.visible = false;
+    this.panel = document.getElementById("traceInfo")!;
+    this.panelText = document.getElementById("traceText")!;
   }
 
   private cell(lon: number, lat: number): [number, number] | null {
@@ -169,10 +174,12 @@ export class Catchments {
 
   show(pos: THREE.Vector3, areaKm2: number, cityMgd: number, name?: string) {
     const rainMgd = (areaKm2 * 1e6 * RAIN_M_PER_YEAR) / 365 / M3_PER_MG;
-    const share = cityMgd > 0 ? ` — ${Math.round((rainMgd / cityMgd) * 100)}% of what the city uses` : "";
+    const pct = (rainMgd / cityMgd) * 100;
+    const share = cityMgd > 0 ? ` — ${pct < 1 ? "under 1" : Math.round(pct)}% of what the city uses` : "";
     const a = areaKm2 < 10 ? areaKm2.toFixed(1) : Math.round(areaKm2).toLocaleString();
-    this.labelDiv.innerHTML = `<b>${a} km² drains ${name ? "into " + name : "here"}</b><br>rain on it ≈ ${Math.round(rainMgd).toLocaleString()} million gal a day on average${share}` +
-      `<br><span class="hint">tap elsewhere to trace again, or here to clear</span>`;
+    this.panelText.innerHTML = `<b>${a} km² drains ${name ? "into " + name : "to the marked spot"}</b><br>rain on it ≈ ${Math.round(rainMgd).toLocaleString()} million gal a day on average${share}` +
+      `<br><span class="hint">tap elsewhere to trace again, or the same spot to clear</span>`;
+    this.panel.hidden = false;
     this.label.position.copy(pos);
     this.label.visible = true;
   }
@@ -198,5 +205,6 @@ export class Catchments {
   clear() {
     this.uniforms.tracedOn.value = 0;
     this.label.visible = false;
+    this.panel.hidden = true;
   }
 }

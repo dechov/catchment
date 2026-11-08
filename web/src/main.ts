@@ -94,6 +94,8 @@ async function main() {
   const controls = new MapControls(camera, renderer.domElement);
   controls.enableDamping = true; controls.maxPolarAngle = Math.PI * 0.47;
   controls.minDistance = 2; controls.maxDistance = 600;
+  // touch: one finger turns and tilts the view, two fingers pan and pinch to zoom
+  controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
 
   // ---- region terrain ------------------------------------------------------------------
   const tex = (img: HTMLImageElement, nearest = false) => {
@@ -620,8 +622,9 @@ async function main() {
     const area = catchments.trace(lon, lat, cellKm * cellKm, res ? rid : 0);
     if (area === null) return;
     lastTap = hit.point.clone();
-    catchments.show(hit.point.clone().add(new THREE.Vector3(0, camD * 0.01, 0)), area, waterUse(year), res?.name);
+    catchments.show(hit.point.clone(), area, waterUse(year), res?.name);
   });
+  document.getElementById("traceClose")!.addEventListener("click", () => { catchments.clear(); lastTap = null; });
   // phones: the legend is a sheet behind a button
   const legendBtn = document.getElementById("legendBtn")!, legendEl = document.getElementById("legend")!;
   legendBtn.addEventListener("click", () => {
@@ -789,7 +792,7 @@ async function main() {
       const rid = resIdAt(lon, lat), res = data.reservoirs.find((r) => r.id === rid && fillFraction(r, year) > 0);
       const a = catchments.trace(lon, lat, cellKm * cellKm, res ? rid : 0);
       const [x, z] = frame.xz(lon, lat);
-      if (a !== null) catchments.show(new THREE.Vector3(x, yOf(groundAt(lon, lat)) + 0.5, z), a, waterUse(year), res?.name);
+      if (a !== null) catchments.show(new THREE.Vector3(x, yOf(groundAt(lon, lat)), z), a, waterUse(year), res?.name);
       return a;
     },
     mapsPending: () => valleys.reduce((n, vv) => n + vv.maps.pending, 0) + (tiles?.pending ?? 0), setYear: (y: number) => { year = y; slider.value = String(y); }, go, camera, controls, frame };

@@ -71,9 +71,15 @@ button.on { background: rgba(255,255,255,0.26); border-color: rgba(255,255,255,0
 .label.demand .cap-line { color: var(--muted); }
 .label.demand.short { border-color: #d9603b; }
 #legend .hint { max-width: 200px; font-size: 11px; margin-top: 4px; }
-.label.traced { background: var(--panel); border-left: 4px solid #f2b33d; border-radius: 6px; padding: 5px 8px;
-  font-size: 12px; line-height: 1.35; text-shadow: none; transform: translateY(-60%); max-width: 240px; white-space: normal; }
-.label.traced .hint { color: var(--muted); font-size: 11px; }
+#traceInfo { position: fixed; left: 50%; transform: translateX(-50%); bottom: 96px; width: min(360px, calc(100vw - 32px));
+  display: flex; gap: 8px; align-items: flex-start; background: var(--panel); border-left: 4px solid #f2b33d;
+  border-radius: 8px; padding: 8px 10px; font-size: 12px; line-height: 1.4; z-index: 5; }
+#traceInfo[hidden] { display: none; }
+#traceText { flex: 1; }
+#traceInfo .hint { color: var(--muted); font-size: 11px; }
+#traceClose { flex: none; padding: 2px 8px; }
+.tap-ring { width: 16px; height: 16px; border: 2.5px solid #f2b33d; border-radius: 50%; box-shadow: 0 0 0 1.5px rgba(0,0,0,0.45);
+  pointer-events: none; }
 .label.demand .drought { color: #f0a080; font-weight: 600; }
 
 #loading { position: fixed; inset: 0; display: grid; place-items: center; background: var(--bg);
@@ -123,6 +129,7 @@ body.story-on #captions { display: none; }
     max-height: 48vh; overflow-y: auto; }
   #story p { font-size: 13px; }
   #timebar { left: 8px; right: 8px; bottom: max(8px, env(safe-area-inset-bottom)); gap: 8px; padding: 8px 10px; }
+  #traceInfo { bottom: calc(max(8px, env(safe-area-inset-bottom)) + 76px); width: calc(100vw - 16px); font-size: 13px; }
   #play { width: 44px; height: 44px; }
   #year { font-size: 20px; width: 50px; }
   #slider { height: 28px; }
