@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f1418" />
   <title>Catchment</title>
   <link rel="stylesheet" href="./src/style.css" />
 </head>
@@ -16,7 +17,10 @@
     <button data-view="region" class="on">Whole system</button>
     <button data-view="ashokan">Ashokan</button>
     <button data-view="croton">Croton</button>
+    <button data-view="delaware">Delaware</button>
     <button data-view="city">City</button>
+    <button id="underground" title="See through the ground to the tunnels">Underground</button>
+    <button id="legendBtn" aria-controls="legend" aria-expanded="false">Legend</button>
   </nav>
   <aside id="captions" aria-live="polite"></aside>
   <aside id="legend">
@@ -25,6 +29,9 @@
     <div><i class="sw delaware"></i>Delaware</div>
     <div><i class="sw modern"></i>Modern</div>
     <div><i class="sw dash"></i>Under construction</div>
+    <div><i class="sw xray"></i>Tunnel (below ground)</div>
+    <label><input type="checkbox" id="oldmaps" checked /> Old maps</label>
+    <small>Old maps: USGS Historical Topographic Map Collection, 1893–1946. Terrain: AWS Terrain Tiles. Routes, lakes, rivers: © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors</small>
   </aside>
   <footer id="timebar">
     <button id="play" aria-label="Play">▶</button>

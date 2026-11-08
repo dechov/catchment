@@ -19,17 +19,29 @@ RESERVOIRS = [
     ("croton-distributing", "Croton Distributing Reservoir", "croton", -73.9825, 40.7533, None, 1837, 1842, 1842, None, "Croton_Distributing_Reservoir", {"retired": 1890}),
     ("central-park-lower", "Yorkville Receiving Reservoir", "croton", -73.9690, 40.7795, None, 1837, 1842, 1842, None, "Jacqueline_Kennedy_Onassis_Reservoir", {"retired": 1930}),
     ("central-park-upper", "Central Park Reservoir", "croton", -73.9625, 40.7855, None, 1858, 1860, 1862, None, "Jacqueline_Kennedy_Onassis_Reservoir", {"retired": 1993}),
+    ("old-croton", "Croton Lake (Old Croton Dam)", "croton", -73.7900, 41.2400, 49.1, 1837, 1842, 1842, None, "Old_Croton_Dam",
+     {"retired": 1906, "drowned_by": "new-croton", "note": "57 ft masonry dam, 670 ft long; submerged 34 ft under New Croton Reservoir since 1906",
+      "dam": {"name": "Old Croton Dam", "lon": -73.80056, "lat": 41.23333, "height_ft": 57, "length_ft": 670, "type": "Masonry",
+              "crest": [[-73.800319, 41.23423], [-73.800801, 41.23243]]}}),
     ("boyds-corner", "Boyds Corner Reservoir", "croton", -73.7550, 41.4510, None, None, None, 1872, "Boyds Corner Dam", None, {}),
     ("middle-branch", "Middle Branch Reservoir", "croton", -73.6440, 41.4110, None, None, None, 1878, "Middle Branch Dam", None, {}),
     ("west-branch", "West Branch Reservoir", "croton", -73.7000, 41.4250, 490 * FT, None, None, 1895, "West Branch Dam", "West_Branch_Reservoir", {}),
+    ("east-branch", "East Branch Reservoir", "croton", -73.5912, 41.3970, None, None, None, 1891, "Sodom Dam", "East_Branch_Reservoir", {}),
+    ("bog-brook", "Bog Brook Reservoir", "croton", -73.5858, 41.4157, None, None, None, 1892, "Bog Brook Dam #1", "Bog_Brook_Reservoir", {}),
     ("titicus", "Titicus Reservoir", "croton", -73.6150, 41.3250, None, None, None, 1895, "Titicus Dam", None, {}),
     ("amawalk", "Amawalk Reservoir", "croton", -73.7520, 41.2880, None, None, None, 1897, "Amawalk Dam", None, {}),
     ("jerome-park", "Jerome Park Reservoir", "croton", -73.8956, 40.8778, None, 1895, 1905, 1906, None, "Jerome_Park_Reservoir", {"approx": ["construction_start", "fill_start"]}),
     ("new-croton", "New Croton Reservoir", "croton", -73.8398, 41.2330, 194 * FT, 1892, 1905, 1906, "New Croton Reservoir Dam", "New_Croton_Reservoir", {"approx": ["fill_start"]}),
+    ("muscoot", "Muscoot Reservoir", "croton", -73.7070, 41.2690, None, None, None, 1905, "Muscoot Dam", "Muscoot_Reservoir", {}),
     ("cross-river", "Cross River Reservoir", "croton", -73.6400, 41.2700, None, None, None, 1908, "Cross River Dam", None, {}),
     ("croton-falls", "Croton Falls Reservoir", "croton", -73.6600, 41.3900, None, None, None, 1910, "Croton Falls Dam", None, {}),
+    ("diverting", "Diverting Reservoir", "croton", -73.6299, 41.3837, None, None, None, 1911, "Diverting Reservoir Dam", "Diverting_Reservoir", {}),
     ("ashokan", "Ashokan Reservoir", "catskill", -74.2170, 41.9500, 585 * FT, 1907, 1912, 1915, "Ashokan Dam", "Ashokan_Reservoir", {"fill_end": 1914}),
     ("kensico", "Kensico Reservoir", "catskill", -73.7639, 41.0861, 108, 1913, 1915, 1917, "Kensico Dam", "Kensico_Reservoir", {"approx": ["fill_start"], "note": "old Kensico dam (1885) demolished from 1911"}),
+    ("old-kensico", "Kensico Reservoir (1885)", "croton", -73.7620, 41.0820, 70.1, 1881, 1885, 1885, None, "Kensico_Reservoir",
+     {"retired": 1915, "drowned_by": "kensico", "approx": ["construction_start"],
+      "note": "Bronx River dammed for the Croton system; level 230 ft from the 1893 USGS sheet; drowned by the new Kensico Reservoir",
+      "dam": {"name": "Kensico Dam (1885)", "lon": -73.76985, "lat": 41.07275, "height_ft": 40, "length_ft": 600, "type": "Masonry", "approx": True}}),
     ("hillview", "Hillview Reservoir", "catskill", -73.8692, 40.9122, 90, 1909, 1915, 1915, None, "Hillview_Reservoir", {"approx": ["fill_start"]}),
     ("schoharie", "Schoharie Reservoir", "catskill", -74.4398, 42.3712, 343, 1919, 1924, 1926, "Gilboa Dam", "Schoharie_Reservoir", {"approx": ["construction_start", "fill_start"], "fill_end": 1924}),
     ("rondout", "Rondout Reservoir", "delaware", -74.4710, 41.8226, 255, 1937, 1950, 1951, "Merriman Dam", "Rondout_Reservoir", {"approx": ["fill_start"]}),
@@ -94,7 +106,7 @@ def main():
                    dam_length_ft=d["properties"]["length_ft"] if d else None,
                    approx=extra.get("approx", []) + ([] if page else ["in_service"]),
                    source=WP + page if page else "NID year completed",
-                   note=extra.get("note"))
+                   note=extra.get("note"), drowned_by=extra.get("drowned_by"), dam=extra.get("dam"))
         features.append(rec)
     aq_geo = []
     for aid, name, system, kind, cs, ins, ret, page, pts in AQUEDUCTS:
