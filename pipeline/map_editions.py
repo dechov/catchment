@@ -34,7 +34,10 @@ EDITIONS = {
     "cannonsville": [(0, 1940), (1941, 1962), (1965, 2010)],
     "city": [(0, 1892), (1893, 1901), (1930, 1950), (1951, 1970), (1971, 2010)],
 }
-FILL = {"ashokan": (1912, 1912)}   # areas not in old_maps.VALLEYS: (fill start, map cutoff)
+FILL = {"ashokan": (1912, 1912)}
+# sheets left out: later printings that keep the survey date but add the reservoir (the Rosendale
+# 1903 reprint, item 129222, has Ashokan drawn on it; item 148354 is the true pre-dam printing)
+EXCLUDE = {"129222"}   # areas not in old_maps.VALLEYS: (fill start, map cutoff)
 NO_RESERVOIR = {"city"}   # one phase: any edition may lend a sheet to another
 
 
@@ -69,6 +72,8 @@ def pick(items, lo, hi):
     """Per quadrangle and scale, the latest sheet printed in [lo, hi]."""
     best = {}
     for it in items:
+        if any(f"_{x}_" in it["downloadURL"] for x in EXCLUDE):
+            continue
         year = int(it["publicationDate"][:4])
         scale = next((s for s in SCALE_RANK if f"{s}-scale" in it["title"] or f"_{s}_" in it["downloadURL"]), None)
         if scale is None or not lo <= year <= hi:
