@@ -9,6 +9,7 @@ import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
 import { Bounds, Frame, HeightGrid, yOf, loadImage } from "./geo";
 import { gridGeometry, shadeGLSL } from "./terrain";
 import { buildDam, DamData } from "./dams";
+import { TileTerrain } from "./tiles";
 import {
   Reservoir, Aqueduct, Dam, Event, fillFraction, damProgress, damProgressFromYear, lineState,
   ERAS, SYSTEM_COLORS,
@@ -82,7 +83,7 @@ async function main() {
 
   const scene = new THREE.Scene();
   scene.fog = new THREE.Fog(0xb9c8d4, 250, 650);
-  const camera = new THREE.PerspectiveCamera(40, innerWidth / innerHeight, 0.05, 2000);
+  const camera = new THREE.PerspectiveCamera(40, innerWidth / innerHeight, 0.05, 3000);
   const controls = new MapControls(camera, renderer.domElement);
   controls.enableDamping = true; controls.maxPolarAngle = Math.PI * 0.47;
   controls.minDistance = 2; controls.maxDistance = 600;
@@ -108,8 +109,11 @@ async function main() {
     vec2 regionUv(vec3 w) {
       return vec2((w.x - regionBox.x) / (regionBox.z - regionBox.x), 1.0 - (w.z - regionBox.y) / (regionBox.w - regionBox.y));
     }
-    int waterId(vec3 w) { return int(texture2D(resId, regionUv(w)).r * 255.0 + 0.5); }
+    bool inRegion(vec3 w) { vec2 u = regionUv(w); return u.x > 0.0 && u.x < 1.0 && u.y > 0.0 && u.y < 1.0; }
+    int waterId(vec3 w) { return inRegion(w) ? int(texture2D(resId, regionUv(w)).r * 255.0 + 0.5) : 0; }
     vec3 applyLakes(vec3 c, vec3 w) {
+      // beyond the region's water maps, only the sea (ground at sea level) is known
+      if (!inRegion(w)) return w.y < 0.001 ? WATER * 0.85 : c;
       vec3 l = texture2D(lakes, regionUv(w)).rgb;
       c = mix(c, LAKE, smoothstep(0.3, 0.6, l.r));
       return mix(c, WATER * 0.85, smoothstep(0.35, 0.65, l.b));   // sea, Sound, tidal Hudson (coastline)
@@ -155,8 +159,14 @@ async function main() {
         gl_FragColor = vec4(mix(c, fogColor, fog), alpha);
       }`,
   });
-  const regionMesh = new THREE.Mesh(gridGeometry(region, frame, low ? 4 : 2), regionMat);
-  scene.add(regionMesh);
+  // the ground outside the valley patches: streamed tiles out to the horizon (?tiles=0: the
+  // region's own heightmap only, as before, e.g. offline)
+  const useTiles = new URLSearchParams(location.search).get("tiles") !== "0";
+  const centre = { lon: (data.region.bounds.west + data.region.bounds.east) / 2, lat: (data.region.bounds.south + data.region.bounds.north) / 2 };
+  const tiles = useTiles ? new TileTerrain(frame, regionMat, centre.lon, centre.lat,
+    { rootZ: 5, rootSpan: 1, maxZ: low ? 14 : 15, segs: 32, detail: low ? 2 : 3, maxInflight: 8 }) : null;
+  if (tiles) scene.add(tiles.group);
+  else scene.add(new THREE.Mesh(gridGeometry(region, frame, low ? 4 : 2), regionMat));
 
   // ---- valley details: the pre-reservoir ground, the dam rising and the water filling ----
   // Each valley is a finer (~7-14 m) patch cut into the region. It shows the ground as it was
@@ -592,6 +602,10 @@ async function main() {
       if (flight.t >= 1) flight = null;
     }
     controls.update();
+    tiles?.update(camera);
+    // fog follows the camera's distance, so the horizon fades whether close in or far out
+    const fogD = Math.max(60, camD);
+    for (const m of [regionMat, ...valleyMats]) { m.uniforms.fogNear.value = fogD * 1.6; m.uniforms.fogFar.value = fogD * 5; }
     renderer.render(scene, camera);
     labels.render(scene, camera);
   });
@@ -602,7 +616,7 @@ async function main() {
   });
   // for automated screenshots: window.catchment.setYear(1915)
   requestAnimationFrame(() => requestAnimationFrame(() => ((window as any).__ready = true)));
-  (window as any).catchment = { mapsPending: () => valleys.reduce((n, vv) => n + vv.maps.pending, 0), setYear: (y: number) => { year = y; slider.value = String(y); }, go, camera, controls, frame };
+  (window as any).catchment = { mapsPending: () => valleys.reduce((n, vv) => n + vv.maps.pending, 0) + (tiles?.pending ?? 0), setYear: (y: number) => { year = y; slider.value = String(y); }, go, camera, controls, frame };
 }
 
 const EXAG_STR = "3.0";
