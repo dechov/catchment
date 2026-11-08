@@ -10,7 +10,7 @@ import { Bounds, Frame, HeightGrid, yOf, loadImage } from "./geo";
 import { gridGeometry, shadeGLSL } from "./terrain";
 import { buildDam, DamData } from "./dams";
 import { TileTerrain } from "./tiles";
-import { buildDemand } from "./demand";
+import { buildDemand, storage } from "./demand";
 import {
   Reservoir, Aqueduct, Dam, Event, fillFraction, damProgress, damProgressFromYear, lineState,
   ERAS, SYSTEM_COLORS,
@@ -187,7 +187,7 @@ async function main() {
     const geo = gridGeometry(pre, frame, step, { damH: (i) => (modelled ? 0 : damData[i]), inRes: (i) => maskData[i] / 255 },
       { at: (lo, la) => region.at(lo, la), px: Math.round(pre.w / 40) });
     const u = {
-      topoA: { value: blankTex as THREE.Texture }, topoB: { value: blankTex as THREE.Texture }, topoK: { value: 0 }, topoMix: { value: 1 }, damP: { value: 0 }, alpha: { value: 1 },
+      topoA: { value: blankTex as THREE.Texture }, topoB: { value: blankTex as THREE.Texture }, topoK: { value: 0 }, topoMix: { value: 1 }, postA: { value: 0 }, postB: { value: 0 }, damP: { value: 0 }, alpha: { value: 1 },
       resId: { value: resIdTex }, resCov: { value: resCovTex }, lakes: { value: lakeTex }, fill: fillU, regionBox: { value: regionBox }, ownId: { value: v.reservoir_id }, detail: { value: tex(lakesImg) },
       fogColor: { value: new THREE.Color(0xb9c8d4) }, fogNear: { value: 250 }, fogFar: { value: 650 },
     };
@@ -203,13 +203,15 @@ async function main() {
           gl_Position = projectionMatrix * mv;
         }`,
       fragmentShader: /* glsl */ `
-        uniform sampler2D topoA; uniform sampler2D topoB; uniform float topoK; uniform float topoMix; uniform int ownId; uniform sampler2D detail;
+        uniform sampler2D topoA; uniform sampler2D topoB; uniform float topoK; uniform float topoMix; uniform float postA; uniform float postB; uniform int ownId; uniform sampler2D detail;
         uniform vec3 fogColor; uniform float fogNear; uniform float fogFar; uniform float alpha;
         varying vec3 vN; varying vec2 vUv; varying float vE; varying float vDepth; varying vec3 vW; varying float vIn;
         ${shadeGLSL}
         ${waterGLSL}
         void main() {
           vec3 c = landColor(vE);
+          // the reservoir's own bed, bare mud and stumps where a drought has drawn it down
+          c = mix(c, vec3(0.50, 0.45, 0.36), step(0.5, vIn) * max(postA, postB));
           // other water around the valley: lakes, and older or neighbouring reservoirs. Inside this
           // reservoir's own footprint the ground is pre-dam, so no lakes are drawn there.
           // lakes and sea from the patch's own, finer water map
@@ -221,6 +223,10 @@ async function main() {
           // two map editions, crossfading from A to B (where only one has a sheet, that one)
           vec3 mA = texture2D(topoA, vUv).rgb, mB = texture2D(topoB, vUv).rgb;
           float hA = step(0.02, mA.r + mA.g + mA.b), hB = step(0.02, mB.r + mB.g + mB.b);   // outside the neatlines: 0
+          // a map printed after the reservoir shows it as water: inside the footprint, where the
+          // old ground is only seen when a drought draws the water down, it isn't draped
+          float inRes = step(0.5, vIn);
+          hA *= 1.0 - postA * inRes; hB *= 1.0 - postB * inRes;
           float k = hB * (hA > 0.5 ? topoK : step(0.001, topoK));
           vec3 map = mix(mA, mB, k);
           // later editions print woods bright green and towns red: tone them toward the old sheets
@@ -523,12 +529,15 @@ async function main() {
   let lastCapKey = "";
   function applyYear(t: number) {
     yearEl.textContent = String(Math.floor(t));
-    for (const r of data.reservoirs) fillU.value[r.id] = fillFraction(r, t);
+    // in a drought every full reservoir draws down together (the system is run as one)
+    const dry = storage(t).s;
+    const fillNow = (r: Reservoir) => { const f = fillFraction(r, t); return f >= 1 ? dry : f; };
+    for (const r of data.reservoirs) fillU.value[r.id] = fillNow(r);
     const mapsOn = oldMaps.checked ? 1 : 0;
     // valleys: the dam rises during construction, then the water climbs from the old valley floor.
     // The old maps fade out as the land is cleared, from construction to the start of filling.
     for (const vv of valleys) {
-      const f = fillFraction(vv.res, t);
+      const f = fillNow(vv.res);
       vv.u.damP.value = damProgress(vv.res, t);
       // the edition in force, and the next one while it fades in
       let a = 0;
@@ -538,12 +547,15 @@ async function main() {
       vv.maps.keep([a, nxt, a + 1]);   // and preload the next
       if (tA) vv.u.topoA.value = tA;
       vv.u.topoB.value = tB ?? blankTex;
+      vv.u.postA.value = vv.v.editions[a]?.phase === "post" ? 1 : 0;
+      vv.u.postB.value = nxt >= 0 && vv.v.editions[nxt]?.phase === "post" ? 1 : 0;
       vv.u.topoK.value = tB ? (t - vv.edWin[nxt][0]) / (vv.edWin[nxt][1] - vv.edWin[nxt][0]) : 0;
       vv.u.topoMix.value = mapsOn;
       vv.water.position.y = yOf(vv.bed + (vv.v.water_level_m - vv.bed) * Math.sqrt(f)) + 0.002;
       vv.wU.alpha.value = f > 0 ? 1 : 0;
-      for (const ol of vv.oldLakes) ol.u.alpha.value = (ol.res ? fillFraction(ol.res, t) > 0 : f < 0.5) ? 1 : 0;
-      vv.oldRiver.visible = f < 0.999;
+      const f0 = fillFraction(vv.res, t);   // filling only, not drought
+      for (const ol of vv.oldLakes) ol.u.alpha.value = (ol.res ? fillFraction(ol.res, t) > 0 : f0 < 0.5) ? 1 : 0;
+      vv.oldRiver.visible = f0 < 0.999;
     }
     demand.update(t);
     for (const { d, m } of damMeshes) {

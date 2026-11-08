@@ -46,6 +46,25 @@ const lerp = (t: [number, number][], y: number, step = false) => {
   return t[t.length - 1][1];
 };
 export const waterUse = (y: number) => lerp(USE, y);
+
+/** The great droughts: [peak year (fractional), lowest system storage (share of full), years from
+ *  start to peak]. Rounded, approximate lows from DEP and press accounts. */
+const DROUGHTS: [number, number, number, string][] = [
+  [1950.0, 0.33, 1.2, "1949–50 drought"],
+  [1965.5, 0.25, 2.5, "1960s drought"],
+  [1981.1, 0.35, 0.9, "1980–81 drought"],
+  [1985.3, 0.55, 0.7, "1985 drought"],
+  [2002.2, 0.5, 0.8, "2001–02 drought"],
+];
+/** System storage as a share of full in year `y` (1 outside droughts), and which drought. */
+export function storage(y: number): { s: number; name: string | null } {
+  for (const [peak, low, rise, name] of DROUGHTS) {
+    const fall = rise * 0.6;   // reservoirs refill faster than they drain
+    const u = y < peak ? (peak - y) / rise : (y - peak) / fall;
+    if (u < 1) { const k = 0.5 + 0.5 * Math.cos(Math.PI * u); return { s: 1 - (1 - low) * k, name }; }
+  }
+  return { s: 1, name: null };
+}
 export const supply = (y: number) => lerp(SUPPLY, y, true);
 export const population = (y: number) => lerp(POP, y);
 
@@ -100,9 +119,11 @@ export function buildDemand(frame: Frame, ground: (lon: number, lat: number) => 
       const tight = u / Math.max(1, s);   // > 0.9: the city is close to using all it has
       useMat.color.copy(normal).lerp(shortage, Math.min(1, Math.max(0, (tight - 0.85) / 0.15)));
       label.position.set(0, Math.max(hu, hs) + 0.05, 0);
+      const dr = storage(year);
       div.innerHTML = `<b>${(p / 1e6).toFixed(p < 1e6 ? 2 : 1)} million people</b><br>` +
-        `use ≈ ${fmt(u)} gal a day<br><span class="cap-line">can draw ≈ ${fmt(s)}</span>`;
-      div.classList.toggle("short", tight > 0.9);
+        `use ≈ ${fmt(u)} gal a day<br><span class="cap-line">can draw ≈ ${fmt(s)}</span>` +
+        (dr.name && dr.s < 0.97 ? `<br><span class="drought">${dr.name}: reservoirs ≈ ${Math.round(dr.s * 100)}% full</span>` : "");
+      div.classList.toggle("short", tight > 0.9 || dr.s < 0.7);
     },
   };
 }
