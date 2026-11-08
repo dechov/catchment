@@ -17,6 +17,7 @@ interface Node {
   z: number; x: number; y: number;
   mesh: THREE.Mesh | null; state: "idle" | "loading" | "ready" | "failed";
   photo?: THREE.Texture | null; photoState?: "loading" | "ready" | "failed";
+  normals?: THREE.Texture;
   kids: Node[] | null;
   center: THREE.Vector3; size: number;   // scene units (km)
 }
@@ -142,6 +143,26 @@ export class TileTerrain {
       }
     ring.forEach((r, k) => nrm.set([nrm[r * 3], nrm[r * 3 + 1], nrm[r * 3 + 2]], (nv + k) * 3));
     geo.setAttribute("normal", new THREE.BufferAttribute(nrm, 3));
+    // the same ground at half the detail (what the parent tile shows): the odd vertices on the
+    // lines between their even neighbours, following the triangles' diagonals. Far from the
+    // camera each vertex slides toward it (see morph in the material), so a tile meets its
+    // coarser neighbours smoothly and new detail grows in rather than popping.
+    const cY = new Float32Array(nv + rim);
+    const V = (i: number, j: number) => Math.min(S, Math.max(0, j)) * (S + 1) + Math.min(S, Math.max(0, i));
+    for (let j = 0, v = 0; j <= S; j++)
+      for (let i = 0; i <= S; i++, v++) {
+        let a = v, b = v;
+        if (i % 2 && j % 2) { a = V(i + 1, j - 1); b = V(i - 1, j + 1); }
+        else if (i % 2) { a = V(i - 1, j); b = V(i + 1, j); }
+        else if (j % 2) { a = V(i, j - 1); b = V(i, j + 1); }
+        cY[v] = (pos[a * 3 + 1] + pos[b * 3 + 1]) / 2;
+      }
+    ring.forEach((r, k) => { cY[nv + k] = cY[r] - drop; });
+    geo.setAttribute("coarseY", new THREE.BufferAttribute(cY, 1));
+    // shading from a normal map at half the tile's pixel resolution rather than from the 32x32
+    // vertices: at the tile's edge it is worked out from the last pixels on each side, so two
+    // neighbouring tiles shade alike there and their seam doesn't show as a line
+    n.normals = this.normalMap(px, W, n.size);
     n.center.y = (minY + maxY) / 2;
     const mesh = new THREE.Mesh(geo, this.material);
     mesh.visible = false; mesh.frustumCulled = true;
@@ -155,9 +176,33 @@ export class TileTerrain {
       if (this.photos && !n.photoState) this.loadPhoto(n);
       u.photo.value = on ? n.photo : this.blank;
       u.photoOn.value = on ? 1 : 0;
+      if (u.tileN && n.normals) { u.tileN.value = n.normals; u.tileNOn.value = 1; }
+      // a tile shows between about (detail + 0.7) and twice that many of its sizes from the
+      // camera (see wantsSplit); toward the far end it eases into its parent's coarser shape
+      const r = n.size * (this.opts.detail + 0.7);
+      if (u.morph) (u.morph.value as THREE.Vector2).set(r * 1.05, r * 1.6);
       (mat as THREE.ShaderMaterial).uniformsNeedUpdate = true;
     };
     this.group.add(mesh);
+  }
+
+  private normalMap(px: Uint8ClampedArray, W: number, sizeKm: number): THREE.Texture {
+    const N = W >> 1, hh = new Float32Array(N * N);
+    const at = (x: number, y: number) => { const k = (y * W + x) * 4; return Math.max(-2, px[k] * 256 + px[k + 1] + px[k + 2] / 256 - 32768); };
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++)
+      hh[y * N + x] = yOf((at(2 * x, 2 * y) + at(2 * x + 1, 2 * y) + at(2 * x, 2 * y + 1) + at(2 * x + 1, 2 * y + 1)) / 4);
+    const out = new Uint8Array(N * N * 4), step = sizeKm / N, v = new THREE.Vector3();
+    const H = (x: number, y: number) => hh[Math.min(N - 1, Math.max(0, y)) * N + Math.min(N - 1, Math.max(0, x))];
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+      const x0 = Math.max(0, x - 1), x1 = Math.min(N - 1, x + 1), y0 = Math.max(0, y - 1), y1 = Math.min(N - 1, y + 1);
+      v.set(-(H(x1, y) - H(x0, y)) / ((x1 - x0) * step), 1, -(H(x, y1) - H(x, y0)) / ((y1 - y0) * step)).normalize();
+      const i = ((N - 1 - y) * N + x) * 4;   // texture row 0 is the south edge (uv v = 0)
+      out[i] = (v.x * 0.5 + 0.5) * 255; out[i + 1] = (v.y * 0.5 + 0.5) * 255; out[i + 2] = (v.z * 0.5 + 0.5) * 255; out[i + 3] = 255;
+    }
+    const t = new THREE.DataTexture(out, N, N);
+    t.generateMipmaps = true; t.minFilter = THREE.LinearMipmapLinearFilter; t.magFilter = THREE.LinearFilter;
+    t.needsUpdate = true;
+    return t;
   }
 
   private wantsSplit(n: Node, cam: THREE.Vector3) {
@@ -188,6 +233,7 @@ export class TileTerrain {
 
   private drop(n: Node) {
     n.photo?.dispose(); n.photo = null; n.photoState = undefined;
+    n.normals?.dispose(); n.normals = undefined;
     if (n.mesh) { this.group.remove(n.mesh); n.mesh.geometry.dispose(); n.mesh = null; }
     if (n.state === "loading") { const i = this.queue.indexOf(n); if (i >= 0) this.queue.splice(i, 1); }
     n.state = "idle";

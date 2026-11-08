@@ -104,7 +104,14 @@ async function main() {
   const fillU = { value: new Float32Array(MAX_RES) };
   const box = (b: Bounds) => { const [x0, z0] = frame.xz(b.west, b.north), [x1, z1] = frame.xz(b.east, b.south); return new THREE.Vector4(x0, z0, x1, z1); };
   const regionBox = box(data.region.bounds);
-  const cutouts = data.valleys.slice(0, MAX_CUT).map((v) => box(v.bounds));
+  // the holes the tiles leave for the valley patches stop short of each patch's edge by its rim
+  // band (rimKm): there both are drawn, the patch sunk a little, so whichever surface is higher
+  // shows and no gap opens along the seam when the tiles nearby are coarser than the patch
+  const rimKm = (b: THREE.Vector4) => Math.min(b.z - b.x, b.w - b.y) * 0.02;
+  const cutouts = data.valleys.slice(0, MAX_CUT).map((v) => {
+    const b = box(v.bounds), m = rimKm(b);
+    return new THREE.Vector4(b.x + m, b.y + m, b.z - m, b.w - m);
+  });
   while (cutouts.length < MAX_CUT) cutouts.push(new THREE.Vector4(1e9, 1e9, 1e9, 1e9));
   // the reservoir image is sampled twice: ids without filtering, the shore coverage (G) smoothly
   const resIdTex = tex(resIdImg, true), resCovTex = tex(resIdImg), lakeTex = tex(waterImg);
@@ -148,23 +155,30 @@ async function main() {
     };
   })();
   const regionMat = new THREE.ShaderMaterial({
+    // both sides: a tile's skirt must hide a crack whichever side of the seam it is seen from
+    side: THREE.DoubleSide,
     uniforms: {
       ...catchments.uniforms,
       resId: { value: resIdTex }, resCov: { value: resCovTex }, lakes: { value: lakeTex }, fill: fillU, regionBox: { value: regionBox },
       cutouts: { value: cutouts },
-      photo: { value: blankTex as THREE.Texture }, photoOn: { value: 0 },
+      photo: { value: blankTex as THREE.Texture }, photoOn: { value: 0 }, morph: { value: new THREE.Vector2(0, 0) },
+      tileN: { value: blankTex as THREE.Texture }, tileNOn: { value: 0 },
       fogColor: { value: new THREE.Color(0xb9c8d4) }, fogNear: { value: 250 }, fogFar: { value: 650 },
       alpha: { value: 1 },
     },
     vertexShader: /* glsl */ `
+      attribute float coarseY; uniform vec2 morph;
       varying vec3 vN; varying vec2 vUv; varying float vE; varying vec3 vW; varying float vDepth;
       void main() {
-        vN = normal; vUv = uv; vE = position.y * 1000.0 / ${EXAG_STR}; vW = position;
-        vec4 mv = modelViewMatrix * vec4(position, 1.0); vDepth = -mv.z;
+        // streamed tiles ease toward their parent's coarser shape with distance (tiles.ts)
+        float m = morph.y > 0.0 ? smoothstep(morph.x, morph.y, distance(position, cameraPosition)) : 0.0;
+        vec3 p = position; p.y = mix(position.y, coarseY, m);
+        vN = normal; vUv = uv; vE = p.y * 1000.0 / ${EXAG_STR}; vW = p;
+        vec4 mv = modelViewMatrix * vec4(p, 1.0); vDepth = -mv.z;
         gl_Position = projectionMatrix * mv;
       }`,
     fragmentShader: /* glsl */ `
-      uniform vec4 cutouts[${MAX_CUT}]; uniform sampler2D photo; uniform float photoOn;
+      uniform vec4 cutouts[${MAX_CUT}]; uniform sampler2D photo; uniform float photoOn; uniform sampler2D tileN; uniform float tileNOn;
       uniform vec3 fogColor; uniform float fogNear; uniform float fogFar; uniform float alpha;
       varying vec3 vN; varying vec2 vUv; varying float vE; varying vec3 vW; varying float vDepth;
       ${shadeGLSL}
@@ -179,7 +193,7 @@ async function main() {
         if (photoOn > 0.5) c = texture2D(photo, vUv).rgb * 1.1;   // today's aerial photograph
         c = applyCatch(c, vW);
         c = applyWater(c, waterId(vW), vW);
-        c = light(c, vN);
+        c = light(c, tileNOn > 0.5 ? texture2D(tileN, vUv).xyz * 2.0 - 1.0 : vN);
         float fog = smoothstep(fogNear, fogFar, vDepth);
         gl_FragColor = vec4(mix(c, fogColor, fog), alpha);
       }`,
@@ -210,8 +224,17 @@ async function main() {
     // a modelled dam (crest line from OpenStreetMap) replaces the dam lifted out of the terrain
     const modelled = data.dams.some((d) => d.crests.length && inV(d.lon, d.lat) && maskGrid0.at(d.lon, d.lat) > 127);
     const geo = gridGeometry(pre, frame, step, { damH: (i) => (modelled ? 0 : damData[i]), inRes: (i) => maskData[i] / 255 },
-      { at: (lo, la) => region.at(lo, la), px: Math.round(pre.w / 40) });
+      // among the streamed tiles (the same zoom-14 source) the patch's own rim already meets
+      // them, so it just hangs a skirt; over the coarse region heightmap it blends into it
+      useTiles ? undefined : { at: (lo, la) => region.at(lo, la), px: Math.round(pre.w / 40) }, useTiles ? 0.06 : 0,
+      useTiles ? { px: Math.round(Math.min(pre.w, pre.h) * 0.02), m: 8 } : undefined);
+    // the patch's ground shading at every scale: its normals in a mipmapped texture, so from
+    // farther away the shading can step down to the detail the tiles around it have and the
+    // patch doesn't stand out as a sharper rectangle
+    const pb = box(v.bounds);
+    const nTex = normalTexture(pre, (pb.z - pb.x) / pre.w, (pb.w - pb.y) / pre.h);
     const u = {
+      normTex: { value: nTex }, texelKm: { value: (pb.z - pb.x) / pre.w },
       topoA: { value: blankTex as THREE.Texture }, topoB: { value: blankTex as THREE.Texture }, topoK: { value: 0 }, topoMix: { value: 1 }, postA: { value: 0 }, postB: { value: 0 }, damP: { value: 0 }, alpha: { value: 1 },
       resId: { value: resIdTex }, resCov: { value: resCovTex }, lakes: { value: lakeTex }, fill: fillU, regionBox: { value: regionBox }, ownId: { value: v.reservoir_id }, detail: { value: tex(lakesImg) },
       fogColor: { value: new THREE.Color(0xb9c8d4) }, fogNear: { value: 250 }, fogFar: { value: 650 },
@@ -231,6 +254,7 @@ async function main() {
       fragmentShader: /* glsl */ `
         uniform sampler2D topoA; uniform sampler2D topoB; uniform float topoK; uniform float topoMix; uniform float postA; uniform float postB; uniform int ownId; uniform sampler2D detail;
         uniform vec3 fogColor; uniform float fogNear; uniform float fogFar; uniform float alpha;
+        uniform sampler2D normTex; uniform float texelKm;
         varying vec3 vN; varying vec2 vUv; varying float vE; varying float vDepth; varying vec3 vW; varying float vIn;
         ${shadeGLSL}
         ${waterGLSL}
@@ -247,21 +271,19 @@ async function main() {
             c = mix(c, LAKE, smoothstep(0.3, 0.6, l.r));
             c = mix(c, WATER * 0.85, smoothstep(0.35, 0.65, l.b));
           }
-          // two map editions, crossfading from A to B (where only one has a sheet, that one)
-          vec3 mA = texture2D(topoA, vUv).rgb, mB = texture2D(topoB, vUv).rgb;
-          float hA = step(0.02, mA.r + mA.g + mA.b), hB = step(0.02, mB.r + mB.g + mB.b);   // outside the neatlines: 0
+          // two map editions, crossfading from A to B. Each map's alpha (softMapEdges) fades it
+          // out along a soft, wandering line inside its sheets and the patch, so no neatline or
+          // patch border shows as a straight edge.
+          vec4 tA = texture2D(topoA, vUv), tB = texture2D(topoB, vUv);
           // a map printed after the reservoir shows it as water: inside the footprint, where the
           // old ground is only seen when a drought draws the water down, it isn't draped
-          float inRes = step(0.5, vIn);
-          hA *= 1.0 - postA * inRes; hB *= 1.0 - postB * inRes;
-          float k = hB * (hA > 0.5 ? topoK : step(0.001, topoK));
-          vec3 map = mix(mA, mB, k);
+          float inRes = smoothstep(0.3, 0.7, vIn);
+          float wA = tA.a * (1.0 - postA * inRes) * (1.0 - topoK), wB = tB.a * (1.0 - postB * inRes) * topoK;
+          float has = wA + wB;
+          vec3 map = (tA.rgb * wA + tB.rgb * wB) / max(has, 1e-4);
           // later editions print woods bright green and towns red: tone them toward the old sheets
           map = mix(vec3(dot(map, vec3(0.3, 0.59, 0.11))), map, 0.7);
-          float has = max(hA * (1.0 - k), hB * k);
-          // feather the map out toward the patch edges so it doesn't read as a pasted card
-          float edge = smoothstep(0.0, 0.06, min(min(vUv.x, 1.0 - vUv.x), min(vUv.y, 1.0 - vUv.y)));
-          c = mix(c, map * 1.05, topoMix * has * edge * 0.85);
+          c = mix(c, map * 1.05, topoMix * min(has, 1.0) * 0.85);
           // other reservoirs in the patch (older or neighbouring ones, the city's), drawn over the
           // map while they hold water, so a map printed after one was removed can't hide it
           int id = waterId(vW);
@@ -272,7 +294,11 @@ async function main() {
             c = mix(c, WATER, f * smoothstep(0.35, 0.65, texture2D(resCov, regionUv(vW)).g));
           }
           if (vIn < 0.5) c = applyCatch(c, vW);
-          c = light(c, vN);
+          // the tiles around shade with detail of about depth/${TILE_SPACING_DIV} km; shade with the
+          // patch's normals averaged to about that spacing
+          float lod = log2(max(1.0, vDepth / ${TILE_SPACING_DIV} / texelKm));
+          vec3 nFar = textureLod(normTex, vUv, lod).xyz * 2.0 - 1.0;
+          c = light(c, normalize(mix(vN, nFar, smoothstep(0.5, 2.0, lod))));
           float fog = smoothstep(fogNear, fogFar, vDepth);
           gl_FragColor = vec4(mix(c, fogColor, fog), alpha);
         }`,
@@ -338,7 +364,7 @@ async function main() {
       if (i === firstPost && v.reservoir_id >= 0) return [fadeTo - 1, fadeTo + 1];
       const y = e.year ?? 0; return [y - 1, y + 1];
     });
-    const maps = new MapStack(v.editions.map((e) => D + e.file), tex);
+    const maps = new MapStack(v.editions.map((e) => D + e.file), softMapEdges);
     // the old rivers, on the pre-dam ground
     const orPts: number[] = [];
     for (const line of v.old_rivers) {
@@ -770,6 +796,27 @@ async function main() {
 }
 
 const EXAG_STR = "3.0";
+/** the tiles shade from 128-pixel normal maps (tiles.ts): about this many of their pixels per km
+ *  of distance from the camera, so depth / this is their shading detail */
+const TILE_SPACING_DIV = "300.0";
+
+/** A height grid's normals (scene units, exaggerated like the terrain) as a mipmapped texture. */
+function normalTexture(g: HeightGrid, dxKm: number, dzKm: number): THREE.Texture {
+  const { w, h, data } = g, px = new Uint8Array(w * h * 4);
+  const H = (x: number, y: number) => yOf(data[Math.min(h - 1, Math.max(0, y)) * w + Math.min(w - 1, Math.max(0, x))]);
+  const n = new THREE.Vector3();
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    n.set(-(H(x + 1, y) - H(x - 1, y)) / (2 * dxKm), 1, -(H(x, y + 1) - H(x, y - 1)) / (2 * dzKm)).normalize();
+    // the texture's first row is the south edge (uv v = 0)
+    const i = ((h - 1 - y) * w + x) * 4;
+    px[i] = (n.x * 0.5 + 0.5) * 255; px[i + 1] = (n.y * 0.5 + 0.5) * 255; px[i + 2] = (n.z * 0.5 + 0.5) * 255; px[i + 3] = 255;
+  }
+  const t = new THREE.DataTexture(px, w, h);
+  t.generateMipmaps = true; t.minFilter = THREE.LinearMipmapLinearFilter; t.magFilter = THREE.LinearFilter;
+  t.needsUpdate = true;
+  return t;
+}
+
 const blankTex: THREE.Texture = new THREE.DataTexture(new Uint8Array(4), 1, 1); blankTex.needsUpdate = true;
 
 /** A valley's map editions, loaded when first wanted; textures not wanted are freed (each is
@@ -796,6 +843,64 @@ class MapStack {
     for (const i of want) this.get(i);
     this.texs.forEach((t, i) => { if (t && !want.includes(i)) { t.dispose(); this.texs[i] = null; } });
   }
+}
+
+/** A map sheet as a texture whose alpha fades it out toward the edges of its printed area and
+ *  of the patch, over a band that wanders (smooth noise), so the boundary reads as a soft,
+ *  irregular edge rather than a rectangle. Coverage and distance are worked out on a small grid
+ *  and the alpha is scaled up smoothly onto the full image. */
+function softMapEdges(img: HTMLImageElement): THREE.Texture {
+  const G = 256, s = G / Math.max(img.width, img.height);
+  const w = Math.max(8, Math.round(img.width * s)), h = Math.max(8, Math.round(img.height * s));
+  const small = document.createElement("canvas"); small.width = w; small.height = h;
+  const sx = small.getContext("2d", { willReadFrequently: true })!;
+  sx.drawImage(img, 0, 0, w, h);
+  const px = sx.getImageData(0, 0, w, h);
+  // distance (in grid cells) to the nearest cell without a map, or to the border: chamfer 3-4
+  const d = new Float32Array(w * h);
+  for (let i = 0; i < w * h; i++) d[i] = px.data[i * 4] + px.data[i * 4 + 1] + px.data[i * 4 + 2] > 40 ? 1e9 : 0;
+  // (beyond the image counts as covered: the patch border has its own, rounder fade below)
+  const D = (x: number, y: number) => (x < 0 || y < 0 || x >= w || y >= h ? 1e9 : d[y * w + x]);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const i = y * w + x; if (!d[i]) continue;
+    d[i] = Math.min(d[i], D(x - 1, y) + 3, D(x, y - 1) + 3, D(x - 1, y - 1) + 4, D(x + 1, y - 1) + 4);
+  }
+  for (let y = h - 1; y >= 0; y--) for (let x = w - 1; x >= 0; x--) {
+    const i = y * w + x; if (!d[i]) continue;
+    d[i] = Math.min(d[i], D(x + 1, y) + 3, D(x, y + 1) + 3, D(x + 1, y + 1) + 4, D(x - 1, y + 1) + 4);
+  }
+  // smooth value noise, two octaves, so the fade line meanders
+  const seed = (img.width * 7919 + img.height * 104729) % 1000;
+  const hash = (x: number, y: number) => { const t = Math.sin(x * 127.1 + y * 311.7 + seed) * 43758.5453; return t - Math.floor(t); };
+  const vnoise = (x: number, y: number) => {
+    const x0 = Math.floor(x), y0 = Math.floor(y), fx = x - x0, fy = y - y0;
+    const ux = fx * fx * (3 - 2 * fx), uy = fy * fy * (3 - 2 * fy);
+    const a = hash(x0, y0) + (hash(x0 + 1, y0) - hash(x0, y0)) * ux, b = hash(x0, y0 + 1) + (hash(x0 + 1, y0 + 1) - hash(x0, y0 + 1)) * ux;
+    return a + (b - a) * uy;
+  };
+  const F = 0.05 * G;   // the width of the fade at a sheet's edge, in cells
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const i = y * w + x;
+    const n = 0.65 * vnoise(x / 28, y / 28) + 0.35 * vnoise(x / 9 + 50, y / 9 + 50);
+    const t = Math.min(1, Math.max(0, (d[i] / 3 - n * 0.7 * F) / F));
+    // toward the patch border: a squircle (rounded rectangle) with a wandering rim, fading over
+    // the outer third or so, so a patch's map reads as a soft, irregular blob
+    const u = (2 * (x + 0.5)) / w - 1, v = (2 * (y + 0.5)) / h - 1;
+    const r = Math.pow(Math.pow(Math.abs(u), 4) + Math.pow(Math.abs(v), 4), 0.25) + (n - 0.5) * 0.18;
+    const k = Math.min(1, Math.max(0, (0.97 - r) / 0.35));
+    px.data[i * 4 + 3] = Math.round(255 * t * t * (3 - 2 * t) * k * k * (3 - 2 * k));
+    px.data[i * 4] = px.data[i * 4 + 1] = px.data[i * 4 + 2] = 255;
+  }
+  sx.putImageData(px, 0, 0);
+  const c = document.createElement("canvas"); c.width = img.width; c.height = img.height;
+  const cx = c.getContext("2d")!;
+  cx.drawImage(img, 0, 0);
+  cx.globalCompositeOperation = "destination-in";
+  cx.imageSmoothingEnabled = true; cx.imageSmoothingQuality = "high";
+  cx.drawImage(small, 0, 0, img.width, img.height);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.NoColorSpace;
+  return t;
 }
 
 function imageRed(img: HTMLImageElement, w: number, h: number): Uint8Array {

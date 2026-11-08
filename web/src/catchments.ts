@@ -32,13 +32,26 @@ export function catchGLSL() {
       float acc = texture2D(flow, uv).g * 255.0;
       c = mix(c, vec3(0.20, 0.42, 0.62), 0.55 * smoothstep(74.0, 120.0, acc));
       if (catchOn > 0.5) {
-        vec4 k = catchOf(uv);
+        // the four cells around this point, weighted as in bilinear filtering; the catchment
+        // here is the one with the most weight, and its divide runs where that weight falls to
+        // a half, a line that cuts smoothly across the cells instead of stepping around them
+        vec2 g = uv / flowTexel - 0.5, f = fract(g), b = (floor(g) + 0.5) * flowTexel;
+        vec4 q[4];
+        q[0] = catchOf(b); q[1] = catchOf(b + vec2(flowTexel.x, 0.0));
+        q[2] = catchOf(b + vec2(0.0, flowTexel.y)); q[3] = catchOf(b + flowTexel);
+        float w[4];
+        w[0] = (1.0 - f.x) * (1.0 - f.y); w[1] = f.x * (1.0 - f.y); w[2] = (1.0 - f.x) * f.y; w[3] = f.x * f.y;
+        vec4 k = q[0]; float best = -1.0;
+        for (int i = 0; i < 4; i++) {
+          float s = 0.0;
+          for (int j = 0; j < 4; j++) s += abs(q[j].a - q[i].a) < 0.001 ? w[j] : 0.0;
+          if (s > best) { best = s; k = q[i]; }
+        }
         if (k.a > 0.0) {
           c = mix(c, k.rgb, 0.3);
-          // the divide: a neighbour draining elsewhere
-          float d = abs(catchOf(uv + vec2(flowTexel.x, 0.0)).a - k.a) + abs(catchOf(uv + vec2(0.0, flowTexel.y)).a - k.a)
-                  + abs(catchOf(uv - vec2(flowTexel.x, 0.0)).a - k.a) + abs(catchOf(uv - vec2(0.0, flowTexel.y)).a - k.a);
-          if (d > 0.001) c = mix(c, k.rgb * 1.2, 0.95);
+          // the divide: about two pixels wide on screen, whatever the zoom
+          float e = best - 0.5, fw = max(fwidth(best), 1e-4);
+          c = mix(c, k.rgb * 1.2, 0.95 * (1.0 - smoothstep(fw * 0.8, fw * 1.8, e)));
         }
       }
       if (tracedOn > 0.5) {
