@@ -6,11 +6,17 @@ const R = 6378137;
 /** Grid mesh geometry over a heightmap, every `step` pixels. Optional extra per-vertex attributes. */
 /** Grid mesh geometry over a heightmap, every `step` pixels, reaching the grid's exact bounds.
  *  With `edge`, heights within `edge.px` pixels of the border blend into `edge.at(lon, lat)`, so a
- *  detail patch meets the coarser terrain around it without a step. */
+ *  detail patch meets the coarser terrain around it without a step. With `skirt` (scene units),
+ *  a curtain hangs that far down from the rim, so a patch can sit among terrain of another
+ *  resolution without a crack showing between them. With `sink`, the ground within `sink.px`
+ *  pixels of the border is lowered by up to `sink.m` metres toward the rim, so terrain overlapping
+ *  that band wins where the two are level. */
 export function gridGeometry(
   g: HeightGrid, frame: Frame, step: number,
   extra: Record<string, (i: number) => number> = {},
   edge?: { at: (lon: number, lat: number) => number; px: number },
+  skirt = 0,
+  sink?: { px: number; m: number },
 ): THREE.BufferGeometry {
   const nx = Math.ceil((g.w - 1) / step) + 1;
   const ny = Math.ceil((g.h - 1) / step) + 1;
@@ -39,6 +45,10 @@ export function gridGeometry(
           e = edge.at(lon, lat) * (1 - k) + e * k;
         }
       }
+      if (sink) {
+        const d = Math.min(px, g.w - 1 - px, py, g.h - 1 - py);
+        if (d < sink.px) e -= sink.m * (1 - d / sink.px);
+      }
       pos[v * 3] = x; pos[v * 3 + 1] = yOf(e); pos[v * 3 + 2] = z;
       uv[v * 2] = u; uv[v * 2 + 1] = 1 - t;
       for (const k in extra) ex[k][v] = extra[k](idx);
@@ -59,7 +69,36 @@ export function gridGeometry(
   for (const k in ex) geo.setAttribute(k, new THREE.BufferAttribute(ex[k], 1));
   geo.setIndex(new THREE.BufferAttribute(index, 1));
   geo.computeVertexNormals();
-  return geo;
+  if (!skirt) return geo;
+  // the skirt: copies of the rim vertices, lowered, with the rim's own normals (computed above,
+  // before the curtain exists, so the rim doesn't shade as a line)
+  const ring: number[] = [];
+  for (let i = 0; i < nx - 1; i++) ring.push(i);
+  for (let j = 0; j < ny - 1; j++) ring.push(j * nx + nx - 1);
+  for (let i = nx - 1; i > 0; i--) ring.push((ny - 1) * nx + i);
+  for (let j = ny - 1; j > 0; j--) ring.push(j * nx);
+  const nv = nx * ny, nr = ring.length;
+  const grow = (a: THREE.BufferAttribute, f?: (v: Float32Array, k: number) => void) => {
+    const n = a.itemSize, out = new Float32Array((nv + nr) * n);
+    out.set(a.array as Float32Array);
+    ring.forEach((r, k) => { for (let c = 0; c < n; c++) out[(nv + k) * n + c] = (a.array as Float32Array)[r * n + c]; f?.(out, nv + k); });
+    return new THREE.BufferAttribute(out, n);
+  };
+  const g2 = new THREE.BufferGeometry();
+  for (const name of Object.keys(geo.attributes)) {
+    const a = geo.attributes[name] as THREE.BufferAttribute;
+    g2.setAttribute(name, name === "position" ? grow(a, (o, v) => { o[v * 3 + 1] -= skirt; }) : grow(a));
+  }
+  const idx2 = new Uint32Array(index.length + nr * 6);
+  idx2.set(index);
+  let m = index.length;
+  for (let k = 0; k < nr; k++) {
+    const a = ring[k], b = ring[(k + 1) % nr], a2 = nv + k, b2 = nv + ((k + 1) % nr);
+    idx2[m++] = a; idx2[m++] = a2; idx2[m++] = b; idx2[m++] = b; idx2[m++] = a2; idx2[m++] = b2;
+  }
+  g2.setIndex(new THREE.BufferAttribute(idx2, 1));
+  geo.dispose();
+  return g2;
 }
 
 // Shared GLSL: hypsometric tint + simple lighting, so the region and the Ashokan patch match.
