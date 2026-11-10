@@ -37,7 +37,7 @@ export class FlowParticles {
     geo.setAttribute("position", new THREE.BufferAttribute(this.pos, 3));
     geo.setAttribute("color", new THREE.BufferAttribute(this.col, 3));
     this.points = new THREE.Points(geo, new THREE.PointsMaterial({
-      size: 3, sizeAttenuation: false, vertexColors: true, transparent: true, opacity: 0.85, depthWrite: false,
+      size: 2, sizeAttenuation: false, vertexColors: true, transparent: true, opacity: 0.85, depthWrite: false,
     }));
     this.points.frustumCulled = false;
     this.points.renderOrder = 2;

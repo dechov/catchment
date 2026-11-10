@@ -172,12 +172,13 @@ export class Catchments {
     this.uniforms.tracedOn.value = 1;
   }
 
-  show(pos: THREE.Vector3, areaKm2: number, cityMgd: number, name?: string) {
+  show(pos: THREE.Vector3, areaKm2: number, cityMgd: number, name?: string, extra = "") {
     const rainMgd = (areaKm2 * 1e6 * RAIN_M_PER_YEAR) / 365 / M3_PER_MG;
     const pct = (rainMgd / cityMgd) * 100;
     const share = cityMgd > 0 ? ` — ${pct < 1 ? "under 1" : Math.round(pct)}% of what the city uses` : "";
     const a = areaKm2 < 10 ? areaKm2.toFixed(1) : Math.round(areaKm2).toLocaleString();
     this.panelText.innerHTML = `<b>${a} km² drains ${name ? "into " + name : "to the marked spot"}</b><br>rain on it ≈ ${Math.round(rainMgd).toLocaleString()} million gal a day on average${share}` +
+      (extra ? `<br><span class="displaced">${extra}</span>` : "") +
       `<br><span class="hint">tap elsewhere to trace again, or the same spot to clear</span>`;
     this.panel.hidden = false;
     this.label.position.copy(pos);

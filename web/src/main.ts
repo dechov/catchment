@@ -10,7 +10,7 @@ import { Bounds, Frame, HeightGrid, yOf, loadImage, mx, my } from "./geo";
 import { gridGeometry, shadeGLSL } from "./terrain";
 import { buildDam, DamData } from "./dams";
 import { TileTerrain } from "./tiles";
-import { buildDemand, storage, waterUse } from "./demand";
+import { buildDemand, storage, waterUse, demandSummary, DEMAND_NOTES } from "./demand";
 import { Catchments, catchGLSL, CatchInfo } from "./catchments";
 import { FlowParticles, buildPeaks, waterTableGrid } from "./flowfx";
 import { EPISODES, demandChart } from "./episodes";
@@ -104,6 +104,8 @@ async function main() {
     t.needsUpdate = true; return t;
   };
   const fillU = { value: new Float32Array(MAX_RES) };
+  // 1 while the old maps are shown: the water over them is then lighter, so the map shows through
+  const mapsU = { value: 1 };
   const box = (b: Bounds) => { const [x0, z0] = frame.xz(b.west, b.north), [x1, z1] = frame.xz(b.east, b.south); return new THREE.Vector4(x0, z0, x1, z1); };
   const regionBox = box(data.region.bounds);
   // the holes the tiles leave for the valley patches stop short of each patch's edge by its rim
@@ -293,7 +295,8 @@ async function main() {
           if ((id != ownId || vIn < 0.5) && id > 0 && id < ${MAX_RES}) {
             float f = 0.0;
             for (int k = 0; k < ${MAX_RES}; k++) if (k == id) f = fill[k];
-            c = mix(c, WATER, f * smoothstep(0.35, 0.65, texture2D(resCov, regionUv(vW)).g));
+            // lighter over a map, so the map shows through
+            c = mix(c, WATER, f * smoothstep(0.35, 0.65, texture2D(resCov, regionUv(vW)).g) * (1.0 - 0.35 * topoMix * min(has, 1.0)));
           }
           if (vIn < 0.5) c = applyCatch(c, vW);
           // the tiles around shade with detail of about depth/${TILE_SPACING_DIV} km; shade with the
@@ -313,27 +316,27 @@ async function main() {
     const b = box(v.bounds);
     const waterGeo = new THREE.PlaneGeometry(b.z - b.x, b.w - b.y);
     waterGeo.rotateX(-Math.PI / 2);
-    const wU = { mask: { value: tex(waterImg_) }, alpha: { value: 0 } };
+    const wU = { mask: { value: tex(waterImg_) }, alpha: { value: 0 }, maps: mapsU };
     const water = new THREE.Mesh(waterGeo, new THREE.ShaderMaterial({
       uniforms: wU, transparent: true, depthWrite: false,
       vertexShader: /* glsl */ `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
       fragmentShader: /* glsl */ `
-        uniform sampler2D mask; uniform float alpha; varying vec2 vUv;
+        uniform sampler2D mask; uniform float alpha; uniform float maps; varying vec2 vUv;
         void main(){ if (texture2D(mask, vUv).r < 0.5) discard;
-          gl_FragColor = vec4(0.16, 0.38, 0.58, 0.88 * alpha); }`,
+          gl_FragColor = vec4(0.16, 0.38, 0.58, mix(0.88, 0.62, maps) * alpha); }`,
     }));
     water.position.set((b.x + b.z) / 2, 0, (b.y + b.w) / 2);
     scene.add(water);
     // older lakes under this reservoir, each a flat plane at its own level
     const oldLakes = v.old_lakes.map((o, k) => {
-      const ou = { mask: { value: tex(oldLakeImgs[k]) }, alpha: { value: 0 } };
+      const ou = { mask: { value: tex(oldLakeImgs[k]) }, alpha: { value: 0 }, maps: mapsU };
       const m = new THREE.Mesh(waterGeo, new THREE.ShaderMaterial({
         uniforms: ou, transparent: true, depthWrite: false,
         vertexShader: /* glsl */ `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
         fragmentShader: /* glsl */ `
-          uniform sampler2D mask; uniform float alpha; varying vec2 vUv;
+          uniform sampler2D mask; uniform float alpha; uniform float maps; varying vec2 vUv;
           void main(){ if (texture2D(mask, vUv).r < 0.5) discard;
-            gl_FragColor = vec4(0.16, 0.38, 0.58, 0.9 * alpha); }`,
+            gl_FragColor = vec4(0.16, 0.38, 0.58, mix(0.9, 0.62, maps) * alpha); }`,
       }));
       m.position.set((b.x + b.z) / 2, yOf(o.level_m) + 0.002, (b.y + b.w) / 2);
       scene.add(m);
@@ -392,7 +395,8 @@ async function main() {
   });
   // the city's daily use against what the system can deliver, on the old distributing reservoir's block
   const demand = buildDemand(frame, (lo, la) => region.at(lo, la));
-  scene.add(demand.group);
+  // (the column is kept off the map; the city's use against supply is a chart panel, see useOn)
+  demand.group.visible = false;
   // modern ground anywhere: a valley patch where there is one (finer), else the region
   const groundAt = (lon: number, lat: number) => {
     for (const vv of valleys) if (vv.inside(lon, lat)) return vv.groundNow(lon, lat);
@@ -508,19 +512,22 @@ async function main() {
   }
   ugBtn.onclick = () => setUnderground(!underground);
 
+  // the communities a reservoir took, for the tap panel
+  const displacedLine = (r: Reservoir, t: number) => {
+    const dp = DISPLACED[r.name];
+    if (!dp || (fillFraction(r, t) === 0 && damProgress(r, t) === 0)) return "";
+    return `${fillFraction(r, t) > 0 ? "Drowned or moved" : "Being cleared"}: ${dp.places}${dp.note ? ` (${dp.note})` : ""}`;
+  };
   // ---- labels --------------------------------------------------------------------------
   const resLabels = data.reservoirs.map((r) => {
     const div = document.createElement("div");
     div.className = "label"; div.textContent = r.name.replace(" Reservoir", "");
-    // the communities it took, under its name, when close enough to read
-    const dp = DISPLACED[r.name];
-    const sub = dp ? document.createElement("div") : null;
-    if (sub && dp) { sub.className = "displaced"; div.appendChild(sub); }
+    // (the communities it took are shown when it is tapped, in the panel at the bottom)
     const o = new CSS2DObject(div);
     const [x, z] = frame.xz(r.lon, r.lat);
     o.position.set(x, yOf(Math.max(r.water_level_m, region.at(r.lon, r.lat))) + 0.4, z);
     scene.add(o);
-    return { r, div, sub, dp };
+    return { r, div };
   });
 
   // ---- views ---------------------------------------------------------------------------
@@ -582,6 +589,9 @@ async function main() {
   }
 
   const oldMaps = document.getElementById("oldmaps") as HTMLInputElement;
+  const useOn = document.getElementById("useOn") as HTMLInputElement, usePanel = document.getElementById("usePanel")!;
+  let useKey = "";
+  useOn.addEventListener("change", () => { usePanel.hidden = !useOn.checked; useKey = ""; });
   const catchOn = document.getElementById("catchOn") as HTMLInputElement;
   catchOn.addEventListener("change", () => { catchments.uniforms.catchOn.value = catchOn.checked ? 1 : 0; });
   const photosOn = document.getElementById("photosOn") as HTMLInputElement;
@@ -591,7 +601,7 @@ async function main() {
   const resById = new Map(data.reservoirs.map((r) => [r.id, r]));
   const drops = new FlowParticles(catchments.W, catchments.H, catchments.dir, catchments.acc, catchments.first, region,
     data.region.bounds, frame, (id) => { const r = resById.get(id); return r ? new THREE.Color(SYSTEM_COLORS[r.system] ?? "#cfe") : null; },
-    low ? 1500 : 4000);
+    low ? 3500 : 10000);
   scene.add(drops.points);
   const peaks = buildPeaks(region, frame);
   scene.add(peaks.group);
@@ -622,7 +632,7 @@ async function main() {
     const area = catchments.trace(lon, lat, cellKm * cellKm, res ? rid : 0);
     if (area === null) return;
     lastTap = hit.point.clone();
-    catchments.show(hit.point.clone(), area, waterUse(year), res?.name);
+    catchments.show(hit.point.clone(), area, waterUse(year), res?.name, res ? displacedLine(res, year) : "");
   });
   document.getElementById("traceClose")!.addEventListener("click", () => { catchments.clear(); lastTap = null; });
   // phones: the legend is a sheet behind a button
@@ -641,6 +651,7 @@ async function main() {
     for (const r of data.reservoirs) fillU.value[r.id] = fillNow(r);
     catchments.update((id) => { const r = data.reservoirs.find((q) => q.id === id); return !!r && fillFraction(r, t) > 0; });
     const mapsOn = oldMaps.checked ? 1 : 0;
+    mapsU.value = mapsOn;
     // valleys: the dam rises during construction, then the water climbs from the old valley floor.
     // The old maps fade out as the land is cleared, from construction to the start of filling.
     for (const vv of valleys) {
@@ -664,7 +675,11 @@ async function main() {
       for (const ol of vv.oldLakes) ol.u.alpha.value = (ol.res ? fillFraction(ol.res, t) > 0 : f0 < 0.5) ? 1 : 0;
       vv.oldRiver.visible = f0 < 0.999;
     }
-    demand.update(t);
+    if (useOn.checked && useKey !== t.toFixed(1)) {
+      useKey = t.toFixed(1);
+      usePanel.innerHTML = `<b>New York City, ${Math.floor(t)}</b><br>${demandSummary(t)}` + demandChart(t) +
+        `<div class="hint">${DEMAND_NOTES}</div>`;
+    }
     waterTable.position.y = -yOf((1 - dry) * 12);   // a drought lowers the water table too
     for (const { d, m } of damMeshes) {
       const p = damProgressFromYear(d as unknown as Dam, t);
@@ -681,15 +696,10 @@ async function main() {
         mat.opacity = (st === "retired" ? 0.55 : 1) * (isX ? (underground ? 0.9 : 0.6) : 1);
       }
     }
-    const camNear = camera.position.distanceTo(controls.target) < 90;
-    for (const { r, div, sub, dp } of resLabels) {
+    for (const { r, div } of resLabels) {
       const f2 = fillFraction(r, t), building = damProgress(r, t) > 0 && f2 === 0 && t < (r.in_service ?? 9999);
       div.style.opacity = f2 > 0 || building ? "1" : "0";
       div.classList.toggle("building", building);
-      if (sub && dp) {
-        sub.style.display = camNear && (f2 > 0 || building) ? "block" : "none";
-        sub.textContent = `${f2 > 0 ? "Drowned or moved" : "Being cleared"}: ${dp.places}${dp.note ? ` (${dp.note})` : ""}`;
-      }
     }
     // captions: events from the last 6 years, newest first
     const recent = data.events.filter((e) => e.year <= t && e.year > t - 6).slice(-5).reverse();

@@ -4,14 +4,14 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0f1418" />
-  <title>Catchment</title>
+  <title>Catchment: how New York was quenched</title>
   <link rel="stylesheet" href="./src/style.css" />
 </head>
 <body>
   <div id="app"></div>
   <header id="title">
     <h1>Catchment</h1>
-    <p>How New York City built its water supply</p>
+    <p>How New York was quenched</p>
   </header>
   <nav id="views">
     <button id="storiesBtn" class="stories">Stories</button>
@@ -42,9 +42,11 @@
     <label><input type="checkbox" id="oldmaps" checked /> Old maps</label>
     <label><input type="checkbox" id="catchOn" checked /> Catchments</label>
     <label><input type="checkbox" id="photosOn" /> Aerial photos (today)</label>
-    <div class="hint">Tap or click the ground to see everything that drains to that spot.</div>
+    <label><input type="checkbox" id="useOn" /> City's use vs. supply (chart)</label>
+    <div class="hint">Tap or click the ground to see everything that drains to that spot; tap a reservoir for its catchment and the towns it took.</div>
     <small>Old maps: USGS Historical Topographic Map Collection, 1891–1998; Manhattan 1836–1865: images from the <a href="https://www.davidrumsey.com/">David Rumsey Map Collection</a> courtesy Stanford University Libraries (CC BY-NC-SA 3.0). Terrain: AWS Terrain Tiles. Aerial photos: USGS The National Map. Routes, lakes, rivers: © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors</small>
   </aside>
+  <section id="usePanel" hidden aria-live="polite"></section>
   <section id="traceInfo" hidden aria-live="polite"><div id="traceText"></div><button id="traceClose" aria-label="Clear the traced area">✕</button></section>
   <footer id="timebar">
     <button id="play" aria-label="Play">▶</button>

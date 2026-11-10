@@ -68,6 +68,15 @@ export function storage(y: number): { s: number; name: string | null } {
 export const supply = (y: number) => lerp(SUPPLY, y, true);
 export const population = (y: number) => lerp(POP, y);
 
+/** One year's people, use, what the system could draw, and any drought, as short HTML lines. */
+export function demandSummary(year: number): string {
+  const u = waterUse(year), s = supply(year), p = population(year), dr = storage(year);
+  if (u <= 0) return `${(p / 1e6).toFixed(2)} million people, on wells, cisterns and ponds`;
+  const fmt = (mgd: number) => (mgd >= 1000 ? `${(mgd / 1000).toFixed(2)} billion` : `${Math.round(mgd)} million`);
+  return `${(p / 1e6).toFixed(p < 1e6 ? 2 : 1)} million people · use ≈ ${fmt(u)} gal a day · can draw ≈ ${fmt(s)}` +
+    (dr.name && dr.s < 0.97 ? `<br><span class="drought">${dr.name}: reservoirs ≈ ${Math.round(dr.s * 100)}% full</span>` : "");
+}
+
 const M3_PER_MG = 3785.41;
 const ANCHOR: [number, number] = [-73.98, 40.7536];   // Fifth Avenue at 42nd Street
 const BEARING = 29;                                   // Manhattan's avenues, degrees east of north
