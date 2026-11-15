@@ -52,6 +52,8 @@ button.on { background: rgba(255,255,255,0.26); border-color: rgba(255,255,255,0
   background: var(--panel); border-radius: 10px; padding: 10px 14px; }
 #play { width: 40px; height: 40px; font-size: 16px; flex: none; }
 #year { font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; width: 76px; flex: none; }
+#month { flex: none; width: 74px; font-size: 13px; color: #cfe3f5; }
+#month[hidden] { display: none; }
 #track { position: relative; flex: 1; height: 44px; }
 #eras { position: absolute; left: 0; right: 0; top: 4px; height: 10px; border-radius: 5px; overflow: hidden; }
 #eras span { position: absolute; top: 0; bottom: 0; opacity: 0.75; font-size: 0; }

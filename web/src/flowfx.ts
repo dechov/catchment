@@ -12,6 +12,8 @@ const DX = [1, 1, 0, -1, -1, -1, 0, 1], DY = [0, 1, 1, 1, 0, -1, -1, -1];
 
 export class FlowParticles {
   points: THREE.Points;
+  /** how fast the drops run, relative to normal (the rain loop speeds them in the spring melt) */
+  speed = 1;
   private N: number;
   private cell: Int32Array; private t: Float32Array; private life: Float32Array;
   private pos: Float32Array; private col: Float32Array;
@@ -56,7 +58,7 @@ export class FlowParticles {
     for (let k = 0; k < this.N; k++) {
       let i = this.cell[k];
       // cells per second: faster on bigger streams
-      this.t[k] += dt * (2 + acc[i] / 24);
+      this.t[k] += dt * this.speed * (2 + acc[i] / 24);
       this.life[k] -= dt;
       while (this.t[k] >= 1) {
         this.t[k] -= 1;

@@ -16,6 +16,7 @@ import { FlowParticles, buildPeaks, waterTableGrid } from "./flowfx";
 import { EPISODES, demandChart } from "./episodes";
 import { DISPLACED } from "./displaced";
 import { WhatIf } from "./whatif";
+import { RainLoop } from "./rainloop";
 import {
   Reservoir, Aqueduct, Dam, Event, fillFraction, damProgress, damProgressFromYear, lineState,
   ERAS, SYSTEM_COLORS,
@@ -625,6 +626,11 @@ async function main() {
     data.region.bounds, frame, (id) => { const r = resById.get(id); return r ? new THREE.Color(SYSTEM_COLORS[r.system] ?? "#cfe") : null; },
     low ? 3500 : 10000);
   scene.add(drops.points);
+  // the rain loop: an average year of rain, snow, water rising back to the air, runoff and storage
+  const rainLoop = new RainLoop(region, frame, low);
+  scene.add(rainLoop.group);
+  const rainOn = document.getElementById("rainOn") as HTMLInputElement, monthEl = document.getElementById("month")!;
+  rainOn.addEventListener("change", () => { rainLoop.setOn(rainOn.checked); monthEl.hidden = !rainOn.checked; drops.speed = 1; });
   const peaks = buildPeaks(region, frame);
   scene.add(peaks.group);
   // the water table, seen in the underground view; it sinks in a drought
@@ -676,7 +682,8 @@ async function main() {
   function applyYear(t: number) {
     yearEl.textContent = String(Math.floor(t));
     // in a drought every full reservoir draws down together (the system is run as one)
-    const dry = storage(t).s;
+    // and, with the rain loop on, the reservoirs rise and fall through the average year
+    const dry = storage(t).s * (rainLoop.on ? rainLoop.now().storage : 1);
     const fillNow = (r: Reservoir) => { const f = fillFraction(r, t); return f >= 1 ? dry : f; };
     for (const r of data.reservoirs) fillU.value[r.id] = fillNow(r);
     catchments.update((id) => { const r = data.reservoirs.find((q) => q.id === id); return !!r && fillFraction(r, t) > 0; });
@@ -810,6 +817,12 @@ async function main() {
       if (flight.t >= 1) flight = null;
     }
     whatIf.update(dt);
+    if (rainLoop.on) {
+      rainLoop.update(dt, controls.target, camera.position.distanceTo(controls.target), renderer.getPixelRatio());
+      const n = rainLoop.now();
+      drops.speed = n.runoff;
+      if (monthEl.textContent !== n.name) monthEl.textContent = n.name;
+    }
     controls.update();
     tiles?.update(camera);
     peaks.update(camD);
@@ -836,7 +849,7 @@ async function main() {
       if (a !== null) catchments.show(new THREE.Vector3(x, yOf(groundAt(lon, lat)), z), a, waterUse(year), res?.name);
       return a;
     },
-    mapsPending: () => valleys.reduce((n, vv) => n + vv.maps.pending, 0) + (tiles?.pending ?? 0), setYear: (y: number) => { year = y; slider.value = String(y); }, go, whatIf, camera, controls, frame };
+    mapsPending: () => valleys.reduce((n, vv) => n + vv.maps.pending, 0) + (tiles?.pending ?? 0), setYear: (y: number) => { year = y; slider.value = String(y); }, go, whatIf, rain: rainLoop, camera, controls, frame };
 }
 
 const EXAG_STR = "3.0";

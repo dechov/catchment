@@ -88,6 +88,10 @@ In the scene each valley's dam rises out of the ground and the water climbs from
 
 ![Lower Manhattan on the 1900 USGS sheets](docs/scene_lower_manhattan_1880.jpg)
 
+## The rain loop
+
+**Rain loop (an average year)** in the legend plays a year of the watershed's water on its own clock, about 36 seconds a year, with the month beside the year. Rain falls around the view, and snow in winter. A faint shimmer rises from the land, heaviest in summer: the water that goes back to the air, about half the rain. The stream drops run fast in the March–April melt and slow in late summer. The reservoirs stand full in May and are drawn down to bare shore by autumn. The monthly shapes in `web/src/rainloop.ts` are approximate figures for an average year, not measurements of any one year; a real-years version would use NOAA rain and DEP storage by month (see the [layer plan](https://claude.ai/artifact/Yb3YHmheogTskxbRst6gkw)).
+
 ## What if: the Stormville Reservoir
 
 The **What if?** view shows a reservoir that was planned and never built, flooded over today's landscape. In 1904 the state's Commission on Additional Water Supply (Burr, Hering and Freeman) proposed one "at Stormville, on Fishkill Creek, covering 1,694 acres", with high water at 364 feet above Croton datum and 49 square miles draining to it (p. 16 of its report, [archive.org](https://archive.org/details/reportcommissio01burrgoog)). The city built Ashokan instead.
