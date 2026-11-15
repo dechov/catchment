@@ -15,6 +15,7 @@ import { Catchments, catchGLSL, CatchInfo } from "./catchments";
 import { FlowParticles, buildPeaks, waterTableGrid } from "./flowfx";
 import { EPISODES, demandChart } from "./episodes";
 import { DISPLACED } from "./displaced";
+import { WhatIf } from "./whatif";
 import {
   Reservoir, Aqueduct, Dam, Event, fillFraction, damProgress, damProgressFromYear, lineState,
   ERAS, SYSTEM_COLORS,
@@ -435,6 +436,10 @@ async function main() {
     scene.add(m);
     return [{ d, m }];
   });
+  // what if: the Stormville Reservoir the 1904 commission proposed on Fishkill Creek, over today's
+  // ground (whatif.ts); shown only in its own view, outside the real timeline
+  const whatIf = await WhatIf.load(D + "whatif_fishkill.json", frame, groundAt);
+  scene.add(whatIf.group);
   scene.add(new THREE.HemisphereLight(0xffffff, 0x445544, 1.6));
   const sun = new THREE.DirectionalLight(0xffffff, 1.5); sun.position.set(-1, 1.4, -0.6); scene.add(sun);
 
@@ -538,12 +543,23 @@ async function main() {
     croton: { target: at(-73.76, 41.3), offset: new THREE.Vector3(-8, 22, 26) },
     city: { target: at(-73.93, 40.82), offset: new THREE.Vector3(-10, 30, 34) },
     delaware: { target: at(-74.95, 42.02), offset: new THREE.Vector3(-4, 34, 40) },
+    fishkill: { target: at(-73.724, 41.592), offset: new THREE.Vector3(-3.5, 7, 8) },
   };
   // every valley also gets a view of its own (?view=pepacton), framed from its patch
   for (const vv of valleys) {
     if (VIEWS[vv.v.id]) continue;
     const b = box(vv.v.bounds), w = Math.max(b.z - b.x, b.w - b.y);
     VIEWS[vv.v.id] = { target: new THREE.Vector3((b.x + b.z) / 2, 0.3, (b.y + b.w) / 2), offset: new THREE.Vector3(-0.1 * w, 0.75 * w, 0.85 * w) };
+  }
+  const whatIfEl = document.getElementById("whatif")!, whatIfFill = document.getElementById("whatifFill") as HTMLButtonElement;
+  {
+    const d = whatIf.doc, st = d.stats;
+    document.getElementById("whatifText")!.textContent =
+      `In ${d.report.year} a state commission proposed damming Fishkill Creek here, at Stormville, as the city's quickest new supply: ` +
+      `${d.report.acres.toLocaleString()} acres, up to ${st.max_depth_ft} feet deep. The city chose Ashokan instead.`;
+    document.getElementById("whatifDrowned")!.textContent = whatIf.drowned();
+    whatIfFill.onclick = () => { const on = whatIfFill.textContent === "Fill it"; whatIf.setActive(on); whatIfFill.textContent = on ? "Drain it" : "Fill it"; };
+    document.getElementById("whatifClose")!.onclick = () => { whatIfEl.hidden = true; };
   }
   let flight: { from: [THREE.Vector3, THREE.Vector3]; to: [THREE.Vector3, THREE.Vector3]; t: number } | null = null;
   function go(name: string, instant = false) {
@@ -556,6 +572,12 @@ async function main() {
     const fit = camera.aspect < 1.3 ? Math.pow(1.3 / camera.aspect, 0.5) : 1;
     const to: [THREE.Vector3, THREE.Vector3] = [v.target.clone(), v.target.clone().add(v.offset.clone().multiplyScalar(fit))];
     document.querySelectorAll<HTMLButtonElement>("#views button[data-view]").forEach((b) => b.classList.toggle("on", b.dataset.view === name));
+    // the what-if reservoir fills when its view is chosen and drains when another is
+    if ((name === "fishkill") !== whatIf.active) {
+      whatIf.setActive(name === "fishkill");
+      whatIfEl.hidden = !whatIf.active; whatIfFill.textContent = "Drain it";
+      if (!whatIf.active) catchments.clear();
+    }
     if (instant) { controls.target.copy(to[0]); camera.position.copy(to[1]); controls.update(); return; }
     flight = { from: [controls.target.clone(), camera.position.clone()], to, t: 0 };
     setParam("view", name);
@@ -627,6 +649,14 @@ async function main() {
     const camD = camera.position.distanceTo(controls.target);
     if (lastTap && hit.point.distanceTo(lastTap) < camD * 0.02) { catchments.clear(); lastTap = null; return; }
     const [lon, lat] = frame.lonlat(hit.point.x, hit.point.z);
+    // on the what-if reservoir: everything it would have caught, and what it would cover
+    if (whatIf.active && whatIf.contains(lon, lat)) {
+      const a = catchments.trace(whatIf.doc.dam_at[0], whatIf.doc.dam_at[1], cellKm * cellKm, 0);
+      if (a === null) return;
+      lastTap = hit.point.clone();
+      catchments.show(hit.point.clone(), a, waterUse(2020), `${whatIf.doc.name} (never built)`, whatIf.drowned());
+      return;
+    }
     // on a reservoir that holds water: its whole catchment
     const rid = resIdAt(lon, lat), res = data.reservoirs.find((r) => r.id === rid && fillFraction(r, year) > 0);
     const area = catchments.trace(lon, lat, cellKm * cellKm, res ? rid : 0);
@@ -779,6 +809,7 @@ async function main() {
       camera.position.lerpVectors(flight.from[1], flight.to[1], e);
       if (flight.t >= 1) flight = null;
     }
+    whatIf.update(dt);
     controls.update();
     tiles?.update(camera);
     peaks.update(camD);
@@ -805,7 +836,7 @@ async function main() {
       if (a !== null) catchments.show(new THREE.Vector3(x, yOf(groundAt(lon, lat)), z), a, waterUse(year), res?.name);
       return a;
     },
-    mapsPending: () => valleys.reduce((n, vv) => n + vv.maps.pending, 0) + (tiles?.pending ?? 0), setYear: (y: number) => { year = y; slider.value = String(y); }, go, camera, controls, frame };
+    mapsPending: () => valleys.reduce((n, vv) => n + vv.maps.pending, 0) + (tiles?.pending ?? 0), setYear: (y: number) => { year = y; slider.value = String(y); }, go, whatIf, camera, controls, frame };
 }
 
 const EXAG_STR = "3.0";

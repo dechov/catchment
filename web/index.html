@@ -20,6 +20,7 @@
     <button data-view="croton">Croton</button>
     <button data-view="delaware">Delaware</button>
     <button data-view="city">City</button>
+    <button data-view="fishkill" class="whatif" title="A reservoir that was planned and never built">What if?</button>
     <button id="underground" title="See through the ground to the tunnels">Underground</button>
     <button id="legendBtn" aria-controls="legend" aria-expanded="false">Legend</button>
   </nav>
@@ -30,6 +31,16 @@
     <p id="storyText"></p>
     <div id="storyChart"></div>
     <div class="story-nav"><button id="storyPrev">‹ Back</button><button id="storyNext">Next ›</button></div>
+  </section>
+  <section id="whatif" class="card" hidden aria-live="polite">
+    <div class="story-head"><span>What if</span><button id="whatifClose" aria-label="Close">✕</button></div>
+    <h2>The Stormville Reservoir</h2>
+    <p id="whatifText"></p>
+    <details><summary>What it would cover today</summary>
+      <p id="whatifDrowned" class="drowned"></p>
+      <small>From the 1904 report of the Commission on Additional Water Supply (p. 16). The dam's line is our reconstruction: where a dam brings the creek up to 364 feet over that many acres. Roads: USGS National Transportation Dataset.</small>
+    </details>
+    <div class="story-nav"><button id="whatifFill">Drain it</button></div>
   </section>
   <aside id="legend">
     <div><i class="sw croton"></i>Croton</div>

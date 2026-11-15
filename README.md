@@ -88,6 +88,12 @@ In the scene each valley's dam rises out of the ground and the water climbs from
 
 ![Lower Manhattan on the 1900 USGS sheets](docs/scene_lower_manhattan_1880.jpg)
 
+## What if: the Stormville Reservoir
+
+The **What if?** view shows a reservoir that was planned and never built, flooded over today's landscape. In 1904 the state's Commission on Additional Water Supply (Burr, Hering and Freeman) proposed one "at Stormville, on Fishkill Creek, covering 1,694 acres", with high water at 364 feet above Croton datum and 49 square miles draining to it (p. 16 of its report, [archive.org](https://archive.org/details/reportcommissio01burrgoog)). The city built Ashokan instead.
+
+The report text doesn't give the dam's site, so `pipeline/whatif_fishkill.py` reconstructs it. It routes flow over today's terrain and puts the dam where Fishkill Creek, held at 364 ft, backs up about the report's area. That site is just north of Stormville, east of the Taconic Parkway: 1,686 acres with 46 square miles draining to it. The rim dips under the water line in two more places, so the reservoir also gets two low dikes. The storage comes out at about 17 billion gallons against the report's 10. The report's figure is probably the usable storage, and today's terrain includes the creek's water, so the volume is the least certain number. The script also measures what the water would cover today from the USGS National Transportation Dataset: about 15 km of road, 2 km of it Route 216, and 0.8 km of the old Beacon rail line. In the view the dam rises and the water climbs from the creek; its card can drain it and fill it again. The view stands outside the timeline, and tapping the water shows its catchment and what it covers.
+
 ## Regenerating the data
 
 ```sh
@@ -116,6 +122,8 @@ python pipeline/export_web.py out/terrain web/public/data
 python pipeline/osm_water.py web/public/data --terrain out/terrain
 python pipeline/catchments.py web/public/data   # flow directions and catchments (~1 min)
 python pipeline/check_scene.py out/terrain        # automatic artifact checks
+# what if: the 1904 Stormville Reservoir (roads from TRAN_New_York_State_GPKG.gpkg, The National Map)
+python pipeline/whatif_fishkill.py out/fishkill web/public/data TRAN_New_York_State_GPKG.gpkg
 ```
 
 Terrain outputs (about 90 MB) are not committed.

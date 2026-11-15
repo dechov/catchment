@@ -96,6 +96,18 @@ button.stories { background: rgba(242, 179, 61, 0.25); border-color: rgba(242, 1
 #story { position: fixed; left: 16px; bottom: 96px; width: min(380px, calc(100vw - 32px)); background: var(--panel);
   border-radius: 10px; padding: 12px 14px; border-left: 4px solid var(--amber); }
 #story[hidden] { display: none; }
+/* the what-if card: like a story, in a cooler colour, so it reads as a branch off the real history */
+#whatif { position: fixed; left: 16px; bottom: 96px; width: min(380px, calc(100vw - 32px)); background: var(--panel);
+  border-radius: 10px; padding: 12px 14px; border-left: 4px solid #8fb7d9; }
+#whatif[hidden] { display: none; }
+#whatif h2 { margin: 4px 0 6px; font-size: 18px; }
+#whatif p { margin: 0 0 8px; font-size: 14px; line-height: 1.45; }
+#whatif .drowned { color: #f3dcc0; font-size: 13px; }
+#whatif details { margin: 0 0 8px; font-size: 13px; }
+#whatif summary { cursor: pointer; color: var(--muted); margin-bottom: 6px; }
+#whatif small { display: block; margin-top: 8px; color: var(--muted); font-size: 11px; line-height: 1.35; }
+button.whatif { background: rgba(143, 183, 217, 0.2); border-color: rgba(143, 183, 217, 0.6); }
+body:has(#whatif:not([hidden])) #captions { display: none; }
 body.story-on #captions { display: none; }
 .story-head { display: flex; justify-content: space-between; align-items: center; color: var(--muted); font-size: 12px; }
 .story-head button { padding: 2px 8px; }
@@ -131,6 +143,8 @@ body.story-on #captions { display: none; }
   #legend label { padding: 6px 0; }
   #captions { top: auto; left: 8px; width: calc(100vw - 16px); bottom: calc(max(8px, env(safe-area-inset-bottom)) + 76px); }
   #captions .cap:nth-child(n+3) { display: none; }
+  #whatif { left: 8px; right: 8px; width: auto; bottom: calc(max(8px, env(safe-area-inset-bottom)) + 76px); padding: 10px 12px;
+    max-height: 48vh; overflow-y: auto; }
   #story { left: 8px; right: 8px; width: auto; bottom: calc(max(8px, env(safe-area-inset-bottom)) + 76px); padding: 10px 12px;
     max-height: 48vh; overflow-y: auto; }
   #story p { font-size: 13px; }
