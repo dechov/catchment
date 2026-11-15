@@ -96,8 +96,11 @@ async function main() {
   const controls = new MapControls(camera, renderer.domElement);
   controls.enableDamping = true; controls.maxPolarAngle = Math.PI * 0.47;
   controls.minDistance = 2; controls.maxDistance = 600;
-  // touch: one finger turns and tilts the view, two fingers pan and pinch to zoom
-  controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
+  // touch, as in Google Earth: one finger pans; with two, pinch zooms, twist turns the view and
+  // moving both up or down tilts it. MapControls does the one-finger pan; the two-finger
+  // gestures are handled here (touchTwoFinger), so it is given nothing for two fingers.
+  controls.touches = { ONE: THREE.TOUCH.PAN, TWO: -1 as unknown as THREE.TOUCH };
+  touchTwoFinger(renderer.domElement, camera, controls);
 
   // ---- region terrain ------------------------------------------------------------------
   const tex = (img: HTMLImageElement, nearest = false) => {
@@ -850,6 +853,40 @@ async function main() {
       return a;
     },
     mapsPending: () => valleys.reduce((n, vv) => n + vv.maps.pending, 0) + (tiles?.pending ?? 0), setYear: (y: number) => { year = y; slider.value = String(y); }, go, whatIf, rain: rainLoop, camera, controls, frame };
+}
+
+/** Two-finger touch gestures: pinch to zoom, twist to turn, both fingers up or down to tilt. */
+function touchTwoFinger(el: HTMLElement, camera: THREE.PerspectiveCamera, controls: MapControls) {
+  const pts = new Map<number, { x: number; y: number }>();
+  let last: { d: number; a: number; my: number } | null = null;
+  const pair = () => {
+    const [p, q] = [...pts.values()];
+    return { d: Math.hypot(q.x - p.x, q.y - p.y), a: Math.atan2(q.y - p.y, q.x - p.x), my: (p.y + q.y) / 2 };
+  };
+  const off = new THREE.Vector3(), sph = new THREE.Spherical();
+  el.addEventListener("pointerdown", (e) => {
+    if (e.pointerType !== "touch") return;
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    last = pts.size === 2 ? pair() : null;
+  });
+  el.addEventListener("pointermove", (e) => {
+    if (!pts.has(e.pointerId)) return;
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pts.size !== 2 || !last) return;
+    const now = pair();
+    off.copy(camera.position).sub(controls.target); sph.setFromVector3(off);
+    // pinch: the distance scales with the fingers' spread
+    if (now.d > 10 && last.d > 10) sph.radius = Math.min(controls.maxDistance, Math.max(controls.minDistance, sph.radius * (last.d / now.d)));
+    // twist: turn about the point looked at, with the fingers
+    let da = now.a - last.a; if (da > Math.PI) da -= 2 * Math.PI; if (da < -Math.PI) da += 2 * Math.PI;
+    sph.theta -= da;
+    // both up or down: tilt (fingers up tips the view toward the horizon)
+    sph.phi = Math.min(controls.maxPolarAngle, Math.max(0.05, sph.phi - ((now.my - last.my) / el.clientHeight) * Math.PI * 0.8));
+    off.setFromSpherical(sph); camera.position.copy(controls.target).add(off); camera.lookAt(controls.target);
+    last = now;
+  });
+  const up = (e: PointerEvent) => { pts.delete(e.pointerId); last = pts.size === 2 ? pair() : null; };
+  el.addEventListener("pointerup", up); el.addEventListener("pointercancel", up);
 }
 
 const EXAG_STR = "3.0";
