@@ -877,9 +877,9 @@ function touchTwoFinger(el: HTMLElement, camera: THREE.PerspectiveCamera, contro
     off.copy(camera.position).sub(controls.target); sph.setFromVector3(off);
     // pinch: the distance scales with the fingers' spread
     if (now.d > 10 && last.d > 10) sph.radius = Math.min(controls.maxDistance, Math.max(controls.minDistance, sph.radius * (last.d / now.d)));
-    // twist: turn about the point looked at, with the fingers
+    // twist: turn about the point looked at (the ground turns against the fingers, as Paul preferred)
     let da = now.a - last.a; if (da > Math.PI) da -= 2 * Math.PI; if (da < -Math.PI) da += 2 * Math.PI;
-    sph.theta -= da;
+    sph.theta += da;
     // both up or down: tilt (fingers up tips the view toward the horizon)
     sph.phi = Math.min(controls.maxPolarAngle, Math.max(0.05, sph.phi - ((now.my - last.my) / el.clientHeight) * Math.PI * 0.8));
     off.setFromSpherical(sph); camera.position.copy(controls.target).add(off); camera.lookAt(controls.target);
