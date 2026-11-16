@@ -396,7 +396,8 @@ async function main() {
     orMat.resolution.set(innerWidth, innerHeight); oldRiverMats.push(orMat);
     const oldRiver = new LineSegments2(orGeo, orMat);
     if (orPts.length) scene.add(oldRiver);
-    return { v, res, u, water, wU, bed, inside, maskGrid, groundNow, edWin, maps, oldLakes, pre, oldRiver };
+    const centre = new THREE.Vector3((b.x + b.z) / 2, 0, (b.y + b.w) / 2), span = Math.max(b.z - b.x, b.w - b.y);
+    return { v, res, u, water, wU, bed, inside, maskGrid, groundNow, edWin, maps, oldLakes, pre, oldRiver, centre, span };
   });
   // the city's daily use against what the system can deliver, on the old distributing reservoir's block
   const demand = buildDemand(frame, (lo, la) => region.at(lo, la));
@@ -701,14 +702,20 @@ async function main() {
       let a = 0;
       while (a + 1 < vv.edWin.length && t >= vv.edWin[a + 1][1]) a++;
       const nxt = a + 1 < vv.edWin.length && t > vv.edWin[a + 1][0] ? a + 1 : -1;
-      const [tA, tB] = [vv.maps.get(a), nxt >= 0 ? vv.maps.get(nxt) : null];
-      vv.maps.keep([a, nxt, a + 1]);   // and preload the next
-      if (tA) vv.u.topoA.value = tA;
+      // (maps are only loaded once the view comes near enough to show them; far off, they're freed)
+      const pd = camera.position.distanceTo(vv.centre), near = pd < vv.span * 3;
+      const [tA, tB] = near ? [vv.maps.get(a), nxt >= 0 ? vv.maps.get(nxt) : null] : [null, null];
+      vv.maps.keep(near ? [a, nxt, a + 1] : []);   // and preload the next
+      if (tA) vv.u.topoA.value = tA; else if (!near) vv.u.topoA.value = blankTex;
       vv.u.topoB.value = tB ?? blankTex;
       vv.u.postA.value = vv.v.editions[a]?.phase === "post" ? 1 : 0;
       vv.u.postB.value = nxt >= 0 && vv.v.editions[nxt]?.phase === "post" ? 1 : 0;
       vv.u.topoK.value = tB ? (t - vv.edWin[nxt][0]) / (vv.edWin[nxt][1] - vv.edWin[nxt][0]) : 0;
-      vv.u.topoMix.value = mapsOn;
+      // a map shows near the years it describes, and only once the view is close enough for its
+      // detail: from the whole region a valley's map would just be a small isolated patch
+      const ky = mapYearFade(t, vv.v.editions[a]?.year) * (1 - vv.u.topoK.value) + (nxt >= 0 ? mapYearFade(t, vv.v.editions[nxt]?.year) * vv.u.topoK.value : 0);
+      const kz = 1 - THREE.MathUtils.smoothstep(pd, vv.span * 1.3, vv.span * 2.6);
+      vv.u.topoMix.value = mapsOn * ky * kz;
       vv.water.position.y = yOf(vv.bed + (vv.v.water_level_m - vv.bed) * Math.sqrt(f)) + 0.002;
       vv.wU.alpha.value = f > 0 ? 1 : 0;
       const f0 = fillFraction(vv.res, t);   // filling only, not drought
@@ -887,6 +894,15 @@ function touchTwoFinger(el: HTMLElement, camera: THREE.PerspectiveCamera, contro
   });
   const up = (e: PointerEvent) => { pts.delete(e.pointerId); last = pts.size === 2 ? pair() : null; };
   el.addEventListener("pointerup", up); el.addEventListener("pointercancel", up);
+}
+
+/** How much of a map printed in year `y` to show in year `t`: fully from 30 years before it was
+ *  printed to 20 years after, fading out over the next 15 years before and 20 after. */
+function mapYearFade(t: number, y: number | null | undefined) {
+  if (y == null) return 1;
+  const d = t - y, s = (x: number) => Math.min(1, Math.max(0, x));
+  const u = d >= 0 ? s((d - 20) / 20) : s((-d - 30) / 15);
+  return 1 - u * u * (3 - 2 * u);
 }
 
 const EXAG_STR = "3.0";
