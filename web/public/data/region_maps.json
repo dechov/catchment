@@ -1,0 +1,66 @@
+{
+ "scale": "1:250,000",
+ "source": "USGS Historical Topographic Map Collection",
+ "editions": [
+  {
+   "file": "region_map0.jpg",
+   "year": 1949,
+   "sheets": [
+    {
+     "name": "Hartford",
+     "year": 1948
+    },
+    {
+     "name": "Newark",
+     "year": 1949
+    },
+    {
+     "name": "Albany",
+     "year": 1948
+    },
+    {
+     "name": "Binghamton",
+     "year": 1948
+    },
+    {
+     "name": "New York",
+     "year": 1949
+    },
+    {
+     "name": "Scranton",
+     "year": 1950
+    }
+   ]
+  },
+  {
+   "file": "region_map1.jpg",
+   "year": 1960,
+   "sheets": [
+    {
+     "name": "Hartford",
+     "year": 1961
+    },
+    {
+     "name": "Newark",
+     "year": 1960
+    },
+    {
+     "name": "Albany",
+     "year": 1959
+    },
+    {
+     "name": "Binghamton",
+     "year": 1958
+    },
+    {
+     "name": "New York",
+     "year": 1960
+    },
+    {
+     "name": "Scranton",
+     "year": 1959
+    }
+   ]
+  }
+ ]
+}

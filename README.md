@@ -88,6 +88,10 @@ In the scene each valley's dam rises out of the ground and the water climbs from
 
 ![Lower Manhattan on the 1900 USGS sheets](docs/scene_lower_manhattan_1880.jpg)
 
+## Old maps by zoom and year
+
+A valley's detailed map shows only once the view comes within about twice the valley's width, and only then is it loaded. From farther out, the whole region is draped with the USGS 1:250,000 sheets instead. There are two editions, about 1948 and about 1960, with six sheets each: Albany, Binghamton, Hartford, New York, Newark and Scranton. `pipeline/regional_maps.py` builds them; their source GeoTIFFs are in the project files under `nyc-water/sim/oldmaps/regional/`. The script evens out the sheets' different printing tones, and the drape fades toward the region's edge along a wandering line. Every map, detailed or regional, also fades with time. It shows fully from 30 years before it was printed to 20 years after, and fades out over the next 15 years earlier or 20 years later. No single-scale series covers the region before the 1940s: the 1:125,000 sheets of about 1900 cover only its New Jersey and Connecticut corners.
+
 ## The rain loop
 
 **Rain loop (an average year)** in the legend plays a year of the watershed's water on its own clock, about 36 seconds a year, with the month beside the year. Rain falls around the view, and snow in winter. A faint shimmer rises from the land, heaviest in summer: the water that goes back to the air, about half the rain. The stream drops run fast in the March–April melt and slow in late summer. The reservoirs stand full in May and are drawn down to bare shore by autumn. The monthly shapes in `web/src/rainloop.ts` are approximate figures for an average year, not measurements of any one year; a real-years version would use NOAA rain and DEP storage by month (see the [layer plan](https://claude.ai/artifact/Yb3YHmheogTskxbRst6gkw)).
@@ -127,6 +131,7 @@ python pipeline/osm_water.py web/public/data --terrain out/terrain
 python pipeline/catchments.py web/public/data   # flow directions and catchments (~1 min)
 python pipeline/check_scene.py out/terrain        # automatic artifact checks
 # what if: the 1904 Stormville Reservoir (roads from TRAN_New_York_State_GPKG.gpkg, The National Map)
+python pipeline/regional_maps.py out/oldmaps/regional web/public/data   # 1:250,000 sheets, c.1948 and c.1960
 python pipeline/whatif_fishkill.py out/fishkill web/public/data TRAN_New_York_State_GPKG.gpkg
 ```
 

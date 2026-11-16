@@ -109,6 +109,8 @@ async function main() {
     t.needsUpdate = true; return t;
   };
   const fillU = { value: new Float32Array(MAX_RES) };
+  // the regional map editions, shared by the tiles and the valley patches (see applyReg)
+  const regU = { regA: { value: blankTex as THREE.Texture }, regB: { value: blankTex as THREE.Texture }, regK: { value: 0 }, regMix: { value: 0 } };
   // 1 while the old maps are shown: the water over them is then lighter, so the map shows through
   const mapsU = { value: 1 };
   const box = (b: Bounds) => { const [x0, z0] = frame.xz(b.west, b.north), [x1, z1] = frame.xz(b.east, b.south); return new THREE.Vector4(x0, z0, x1, z1); };
@@ -133,6 +135,19 @@ async function main() {
       return vec2((w.x - regionBox.x) / (regionBox.z - regionBox.x), 1.0 - (w.z - regionBox.y) / (regionBox.w - regionBox.y));
     }
     bool inRegion(vec3 w) { vec2 u = regionUv(w); return u.x > 0.0 && u.x < 1.0 && u.y > 0.0 && u.y < 1.0; }
+    // the regional maps (1:250,000), for the view from farther out: two editions crossfading
+    uniform sampler2D regA; uniform sampler2D regB; uniform float regK; uniform float regMix;
+    vec3 applyReg(vec3 c, vec3 w) {
+      if (regMix <= 0.001 || !inRegion(w)) return c;
+      vec2 u = regionUv(w);
+      vec3 m = mix(texture2D(regA, u).rgb, texture2D(regB, u).rgb, regK);
+      m = mix(vec3(dot(m, vec3(0.3, 0.59, 0.11))), m, 0.7);
+      // fade out toward the region's border along a wandering line, so it doesn't end in a rectangle
+      float e = min(min(u.x, 1.0 - u.x), min(u.y, 1.0 - u.y));
+      float wob = 0.025 * (sin(u.x * 23.0 + u.y * 7.0) + sin(u.y * 31.0 - u.x * 11.0) + 0.6 * sin((u.x + u.y) * 57.0));
+      float edge = smoothstep(0.02, 0.16, e + wob);
+      return mix(c, m * 1.03, regMix * 0.8 * edge);
+    }
     int waterId(vec3 w) { return inRegion(w) ? int(texture2D(resId, regionUv(w)).r * 255.0 + 0.5) : 0; }
     vec3 applyLakes(vec3 c, vec3 w) {
       // beyond the region's water maps, only the sea (ground at sea level) is known
@@ -169,7 +184,7 @@ async function main() {
     uniforms: {
       ...catchments.uniforms,
       resId: { value: resIdTex }, resCov: { value: resCovTex }, lakes: { value: lakeTex }, fill: fillU, regionBox: { value: regionBox },
-      cutouts: { value: cutouts },
+      cutouts: { value: cutouts }, ...regU,
       photo: { value: blankTex as THREE.Texture }, photoOn: { value: 0 }, morph: { value: new THREE.Vector2(0, 0) },
       tileN: { value: blankTex as THREE.Texture }, tileNOn: { value: 0 },
       fogColor: { value: new THREE.Color(0xb9c8d4) }, fogNear: { value: 250 }, fogFar: { value: 650 },
@@ -198,7 +213,7 @@ async function main() {
           vec4 b = cutouts[k];
           if (vW.x > b.x && vW.x < b.z && vW.z > b.y && vW.z < b.w) discard;
         }
-        vec3 c = applyLakes(landColor(vE), vW);
+        vec3 c = applyLakes(applyReg(landColor(vE), vW), vW);
         if (photoOn > 0.5) c = texture2D(photo, vUv).rgb * 1.1;   // today's aerial photograph
         c = applyCatch(c, vW);
         c = applyWater(c, waterId(vW), vW);
@@ -246,6 +261,7 @@ async function main() {
       normTex: { value: nTex }, texelKm: { value: (pb.z - pb.x) / pre.w },
       topoA: { value: blankTex as THREE.Texture }, topoB: { value: blankTex as THREE.Texture }, topoK: { value: 0 }, topoMix: { value: 1 }, postA: { value: 0 }, postB: { value: 0 }, damP: { value: 0 }, alpha: { value: 1 },
       resId: { value: resIdTex }, resCov: { value: resCovTex }, lakes: { value: lakeTex }, fill: fillU, regionBox: { value: regionBox }, ownId: { value: v.reservoir_id }, detail: { value: tex(lakesImg) },
+      ...regU,
       fogColor: { value: new THREE.Color(0xb9c8d4) }, fogNear: { value: 250 }, fogFar: { value: 650 },
       ...catchments.uniforms,
     };
@@ -269,7 +285,7 @@ async function main() {
         ${waterGLSL}
         ${catchGLSL()}
         void main() {
-          vec3 c = landColor(vE);
+          vec3 c = applyReg(landColor(vE), vW);
           // the reservoir's own bed, bare mud and stumps where a drought has drawn it down
           c = mix(c, vec3(0.50, 0.45, 0.36), step(0.5, vIn) * max(postA, postB));
           // other water around the valley: lakes, and older or neighbouring reservoirs. Inside this
@@ -616,6 +632,15 @@ async function main() {
   }
 
   const oldMaps = document.getElementById("oldmaps") as HTMLInputElement;
+  // the regional map editions (pipeline/regional_maps.py), loaded the first time they are wanted
+  const regionMaps: { editions: { file: string; year: number }[] } = await fetch(D + "region_maps.json").then((r) => r.json()).catch(() => ({ editions: [] }));
+  const regTexs: (THREE.Texture | null | "loading")[] = regionMaps.editions.map(() => null);
+  const regTex = (i: number) => {
+    if (i >= regTexs.length) return null;
+    const x = regTexs[i];
+    if (x === null) { regTexs[i] = "loading"; loadImage(D + regionMaps.editions[i].file).then((img) => { regTexs[i] = tex(img); }).catch(() => {}); return null; }
+    return x === "loading" ? null : x;
+  };
   const useOn = document.getElementById("useOn") as HTMLInputElement, usePanel = document.getElementById("usePanel")!;
   let useKey = "";
   useOn.addEventListener("change", () => { usePanel.hidden = !useOn.checked; useKey = ""; });
@@ -721,6 +746,20 @@ async function main() {
       const f0 = fillFraction(vv.res, t);   // filling only, not drought
       for (const ol of vv.oldLakes) ol.u.alpha.value = (ol.res ? fillFraction(ol.res, t) > 0 : f0 < 0.5) ? 1 : 0;
       vv.oldRiver.visible = f0 < 0.999;
+    }
+    // the regional maps: from farther out, near the years they were printed
+    {
+      const camD = camera.position.distanceTo(controls.target);
+      const kz = THREE.MathUtils.smoothstep(camD, 30, 70);
+      const eds = regionMaps.editions;
+      const k = eds.length > 1 ? THREE.MathUtils.smoothstep(t, (eds[0].year + eds[1].year) / 2 - 2, (eds[0].year + eds[1].year) / 2 + 2) : 0;
+      const ky = eds.length ? mapYearFade(t, eds[0].year) * (1 - k) + (eds.length > 1 ? mapYearFade(t, eds[1].year) * k : 0) : 0;
+      regU.regMix.value = mapsOn * kz * ky;
+      if (regU.regMix.value > 0) {
+        const a = regTex(0), b = regTex(1);
+        if (a) regU.regA.value = a; regU.regB.value = b ?? a ?? blankTex; regU.regK.value = b ? k : 0;
+        if (!a) regU.regMix.value = 0;
+      }
     }
     if (useOn.checked && useKey !== t.toFixed(1)) {
       useKey = t.toFixed(1);
