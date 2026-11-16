@@ -76,9 +76,31 @@ In the scene each valley's dam rises out of the ground and the water climbs from
 - **Dams.** Each dam is built along its crest line from OpenStreetMap (`data/osm/dams.json`), down to the ground without it, with a cross-section by its NID type: a stone gravity wall for masonry and concrete dams, an embankment with riprap and grass for earth dams (`web/src/dams.ts`). They rise during construction.
 - **Sea, Sound and Hudson.** `osm_water.py` floods the sea from OpenStreetMap's coastline (`data/osm/coastline.json`) and adds the tidal Hudson above Yonkers from the flat, near-sea-level ground along its centreline.
 - **Reservoir shores.** Where OpenStreetMap maps a reservoir, its polygon replaces the 28 m outline found in the terrain. The Manhattan reservoirs that are gone are footprints in `data/city_reservoirs.geojson` (Yorkville Receiving and Murray Hill from a Manhattan street-grid model; the Central Park Reservoir from OSM).
-- **The city.** A ~7 m patch over Manhattan, Brooklyn and the Bronx with USGS editions from 1891, 1900, 1947, 1966 and 1995 (`valley.py city`, `map_editions.py`).
+- **What the water is for.** On the Croton Distributing Reservoir's footprint (Fifth Avenue at 41st Street) a blue column holds one day of the city's water use, at the terrain's height exaggeration, beside an outline of what the system could dependably deliver that year, with the population above (`web/src/demand.ts`). The column turns red as use nears supply. Use and supply figures are rounded approximations for now.
+- **Catchments.** `pipeline/catchments.py` fills the region heightmap's pits, takes each cell's D8 flow direction and drainage area, and labels every cell with the first NYC reservoir its water reaches (`flow.png`, `catchments.json`). The computed watersheds come within about 5% of DEP's published ones (Ashokan 674 km² vs 257 mi², Cannonsville 1,206 km² vs 454 mi², the Croton system 1,013 km² vs 375 mi²). The scene tints each catchment by system once its reservoir exists (before that, its ground counts toward the next reservoir downstream), outlines the divides and draws streams draining more than ~5 km². Tapping the ground traces everything upstream of that point, or the whole catchment of a reservoir, with its area and the rain that falls on it.
+- **Water on the move.** Drops run down the streams along the flow directions, faster on bigger streams, coloured by the system whose reservoir they're heading for; named peaks and ridges are labelled (placed on the highest ground near their listed position, more of them as you zoom in); the underground view shows a sketch of the water table, a subdued copy of the ground that sinks in droughts (`web/src/flowfx.ts`).
+- **Aerial photos.** The legend's "Aerial photos (today)" drapes the USGS National Map imagery (public domain) over the streamed terrain tiles, loaded per tile as they come into view.
+- **No straight seams.** Each old map fades out along a soft, wandering line inside its sheets and toward a rounded edge of its valley patch. Terrain tiles shade from their own normal maps and ease toward their parent's shape with distance, so their edges and changes of detail don't show. The valley patches overlap the tiles in a narrow rim instead of meeting them at a cut, and shade at the tiles' detail from afar. Catchment divides cut smoothly across the 89 m flow grid instead of stepping around its cells.
+- **Displaced communities.** Up close, each reservoir's label lists the hamlets it took and, where the sources give one, how many people were displaced (Ashokan about 2,000; Pepacton 974), from the Wikipedia articles on each reservoir (`web/src/displaced.ts`).
+- **Stories.** The Stories button steps through ten short episodes (`web/src/episodes.ts`), from wells and the Collect Pond to today's catchment: each flies the camera to its place, sets or plays its years, and shows a caption, some with a chart of water use against dependable supply. `?story=N` opens one directly.
+- **Droughts.** In 1949–50, the 1960s, 1980–81, 1985 and 2001–02 every full reservoir draws down together to the system's low (≈ 25–55% full; rounded approximations), the water planes sink and the bare bed shows as mud; the city's column notes the drought (`storage()` in `web/src/demand.ts`).
+- **The city.** A ~7 m patch over Manhattan, Brooklyn and the Bronx with USGS editions from 1891, 1900, 1947, 1966 and 1995 (`valley.py city`, `map_editions.py`), and before them Manhattan maps from the David Rumsey Map Collection: Colton 1836, Dripps 1851–52, Colton 1855 and Viele 1865, from Stanford's georeferenced copies (CC BY-NC-SA 3.0; `rumsey_editions.py`, which clips them to the island). The source PNGs are in the project files under `nyc-water/sim/oldmaps/rumsey/`.
 
 ![Lower Manhattan on the 1900 USGS sheets](docs/scene_lower_manhattan_1880.jpg)
+
+## Old maps by zoom and year
+
+A valley's detailed map shows only once the view comes within about twice the valley's width, and only then is it loaded. From farther out, the whole region is draped with the USGS 1:250,000 sheets instead. There are two editions, about 1948 and about 1960, with six sheets each: Albany, Binghamton, Hartford, New York, Newark and Scranton. `pipeline/regional_maps.py` builds them; their source GeoTIFFs are in the project files under `nyc-water/sim/oldmaps/regional/`. The script evens out the sheets' different printing tones, and the drape fades toward the region's edge along a wandering line. Every map, detailed or regional, also fades with time. It shows fully from 30 years before it was printed to 20 years after, and fades out over the next 15 years earlier or 20 years later. No single-scale series covers the region before the 1940s: the 1:125,000 sheets of about 1900 cover only its New Jersey and Connecticut corners.
+
+## The rain loop
+
+**Rain loop (an average year)** in the legend plays a year of the watershed's water on its own clock, about 36 seconds a year, with the month beside the year. Rain falls around the view, and snow in winter. A faint shimmer rises from the land, heaviest in summer: the water that goes back to the air, about half the rain. The stream drops run fast in the March–April melt and slow in late summer. The reservoirs stand full in May and are drawn down to bare shore by autumn. The monthly shapes in `web/src/rainloop.ts` are approximate figures for an average year, not measurements of any one year; a real-years version would use NOAA rain and DEP storage by month (see the [layer plan](https://claude.ai/artifact/Yb3YHmheogTskxbRst6gkw)).
+
+## What if: the Stormville Reservoir
+
+The **What if?** view shows a reservoir that was planned and never built, flooded over today's landscape. In 1904 the state's Commission on Additional Water Supply (Burr, Hering and Freeman) proposed one "at Stormville, on Fishkill Creek, covering 1,694 acres", with high water at 364 feet above Croton datum and 49 square miles draining to it (p. 16 of its report, [archive.org](https://archive.org/details/reportcommissio01burrgoog)). The city built Ashokan instead.
+
+The report text doesn't give the dam's site, so `pipeline/whatif_fishkill.py` reconstructs it. It routes flow over today's terrain and puts the dam where Fishkill Creek, held at 364 ft, backs up about the report's area. That site is just north of Stormville, east of the Taconic Parkway: 1,686 acres with 46 square miles draining to it. The rim dips under the water line in two more places, so the reservoir also gets two low dikes. The storage comes out at about 17 billion gallons against the report's 10. The report's figure is probably the usable storage, and today's terrain includes the creek's water, so the volume is the least certain number. The script also measures what the water would cover today from the USGS National Transportation Dataset: about 15 km of road, 2 km of it Route 216, and 0.8 km of the old Beacon rail line. In the view the dam rises and the water climbs from the creek; its card can drain it and fill it again. The view stands outside the timeline, and tapping the water shows its catchment and what it covers.
 
 ## Regenerating the data
 
@@ -102,9 +124,15 @@ for v in new-croton kensico schoharie rondout neversink pepacton cannonsville ci
   python pipeline/valley.py $v out/terrain out/oldmaps out/tiles
 done
 python pipeline/map_editions.py out/terrain out/oldmaps   # dated editions (~1 GB more scans)
+python pipeline/rumsey_editions.py out/terrain out/oldmaps/rumsey   # Manhattan 1836-1865, ahead of the USGS editions
 # web data (scene.json first, then the OpenStreetMap layers, which read it)
 python pipeline/export_web.py out/terrain web/public/data
 python pipeline/osm_water.py web/public/data --terrain out/terrain
+python pipeline/catchments.py web/public/data   # flow directions and catchments (~1 min)
+python pipeline/check_scene.py out/terrain        # automatic artifact checks
+# what if: the 1904 Stormville Reservoir (roads from TRAN_New_York_State_GPKG.gpkg, The National Map)
+python pipeline/regional_maps.py out/oldmaps/regional web/public/data   # 1:250,000 sheets, c.1948 and c.1960
+python pipeline/whatif_fishkill.py out/fishkill web/public/data TRAN_New_York_State_GPKG.gpkg
 ```
 
 Terrain outputs (about 90 MB) are not committed.

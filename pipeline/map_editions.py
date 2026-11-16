@@ -34,7 +34,10 @@ EDITIONS = {
     "cannonsville": [(0, 1940), (1941, 1962), (1965, 2010)],
     "city": [(0, 1892), (1893, 1901), (1930, 1950), (1951, 1970), (1971, 2010)],
 }
-FILL = {"ashokan": (1912, 1912)}   # areas not in old_maps.VALLEYS: (fill start, map cutoff)
+FILL = {"ashokan": (1912, 1912)}
+# sheets left out: later printings that keep the survey date but add the reservoir (the Rosendale
+# 1903 reprint, item 129222, has Ashokan drawn on it; item 148354 is the true pre-dam printing)
+EXCLUDE = {"129222"}   # areas not in old_maps.VALLEYS: (fill start, map cutoff)
 NO_RESERVOIR = {"city"}   # one phase: any edition may lend a sheet to another
 
 
@@ -61,14 +64,52 @@ def composite(sheets, meta, folder):
                 reproject(r.read(min(b + 1, r.count)), tmp[b], src_transform=r.transform, src_crs=r.crs,
                           dst_transform=dst_T, dst_crs="EPSG:3857", resampling=Resampling.bilinear)
         m = ((lon_px >= qw) & (lon_px < qe))[None, :] & ((lat_px >= qs) & (lat_px < qn))[:, None] & (tmp.sum(0) > 0)
+        m &= ~collar(tmp, m)
         tex[:, m] = tmp[:, m]
+    # narrow gaps left by trimmed collars: filled with a blur of the map around them (normalized
+    # convolution), so the seam between two sheets doesn't open into a strip with no map
+    from scipy import ndimage
+    empty = tex.sum(0) == 0
+    if empty.any() and not empty.all():
+        near = empty & ~ndimage.binary_opening(empty, iterations=60)
+        if near.any():
+            w = ndimage.gaussian_filter((~empty).astype(np.float32), 25)
+            for b in range(3):
+                v = ndimage.gaussian_filter(tex[b].astype(np.float32), 25) / np.maximum(w, 1e-3)
+                tex[b][near] = np.clip(v[near], 0, 255).astype(np.uint8)
     return tex.transpose(1, 2, 0)
+
+
+def collar(tmp, m):
+    """The blank paper margin some scans keep inside their catalogue box: whole columns and rows,
+    in from each side of the box, that are nearly all pale grey or white."""
+    white = (tmp.min(0) > 180) & m
+    out = np.zeros_like(m)
+    ys, xs = np.nonzero(m)
+    if not len(xs): return out
+    y0, y1, x0, x1 = ys.min(), ys.max() + 1, xs.min(), xs.max() + 1
+    colw = white[y0:y1, x0:x1].mean(0); roww = white[y0:y1, x0:x1].mean(1)
+    def run(frac, rev):
+        idx = range(len(frac) - 1, -1, -1) if rev else range(len(frac))
+        n = 0
+        for i in idx:
+            if frac[i] > 0.6: n += 1
+            else: break
+        # (and a few pixels more, past the paler edge of the printed map)
+        return min(n + 10 if n else 0, len(frac) // 8)   # never more than an eighth of the sheet
+    a, b = run(colw, False), run(colw, True)
+    c, d = run(roww, False), run(roww, True)
+    out[y0:y1, x0:x0 + a] = True; out[y0:y1, x1 - b:x1] = True
+    out[y0:y0 + c, x0:x1] = True; out[y1 - d:y1, x0:x1] = True
+    return out & m
 
 
 def pick(items, lo, hi):
     """Per quadrangle and scale, the latest sheet printed in [lo, hi]."""
     best = {}
     for it in items:
+        if any(f"_{x}_" in it["downloadURL"] for x in EXCLUDE):
+            continue
         year = int(it["publicationDate"][:4])
         scale = next((s for s in SCALE_RANK if f"{s}-scale" in it["title"] or f"_{s}_" in it["downloadURL"]), None)
         if scale is None or not lo <= year <= hi:

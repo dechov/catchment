@@ -1,0 +1,268 @@
+{
+ "name": "Stormville Reservoir",
+ "level_m": 110.95,
+ "level_ft": 364,
+ "crest_m": 113.95,
+ "mask": {
+  "file": "whatif_fishkill_mask.png",
+  "bounds": {
+   "west": -73.74504089355469,
+   "north": 41.62763321850305,
+   "east": -73.69714736938477,
+   "south": 41.558949183362564
+  }
+ },
+ "dam_at": [
+  -73.742208,
+  41.587395
+ ],
+ "walls": [
+  {
+   "dam": true,
+   "crest": [
+    [
+     -73.742897,
+     41.590359
+    ],
+    [
+     -73.743904,
+     41.588727
+    ],
+    [
+     -73.742981,
+     41.587844
+    ],
+    [
+     -73.741865,
+     41.587083
+    ],
+    [
+     -73.74135,
+     41.586239
+    ],
+    [
+     -73.740435,
+     41.585404
+    ],
+    [
+     -73.740617,
+     41.584395
+    ],
+    [
+     -73.741571,
+     41.583414
+    ],
+    [
+     -73.741571,
+     41.582515
+    ],
+    [
+     -73.741203,
+     41.581617
+    ],
+    [
+     -73.740835,
+     41.580782
+    ],
+    [
+     -73.740639,
+     41.579947
+    ],
+    [
+     -73.740911,
+     41.578991
+    ],
+    [
+     -73.741693,
+     41.578406
+    ],
+    [
+     -73.738684,
+     41.570966
+    ]
+   ],
+   "low_m": 92.0869434033341,
+   "cells": 89
+  },
+  {
+   "dam": false,
+   "crest": [
+    [
+     -73.727547,
+     41.607632
+    ],
+    [
+     -73.728197,
+     41.606939
+    ],
+    [
+     -73.728456,
+     41.606009
+    ],
+    [
+     -73.729334,
+     41.605367
+    ],
+    [
+     -73.729812,
+     41.604438
+    ]
+   ],
+   "low_m": 105.59948822671092,
+   "cells": 22
+  },
+  {
+   "dam": false,
+   "crest": [
+    [
+     -73.74173,
+     41.571175
+    ],
+    [
+     -73.740492,
+     41.57061
+    ],
+    [
+     -73.739634,
+     41.570188
+    ],
+    [
+     -73.73913,
+     41.569972
+    ]
+   ],
+   "low_m": 104.52220318818189,
+   "cells": 10
+  }
+ ],
+ "stats": {
+  "acres": 1686,
+  "area_km2": 6.82,
+  "drainage_sq_mi": 45.9,
+  "volume_bn_gal": 17.1,
+  "max_depth_ft": 64,
+  "dam_height_ft": 72
+ },
+ "report": {
+  "acres": 1694,
+  "level_ft": 364,
+  "drainage_sq_mi": 49,
+  "storage_mgal": 10000,
+  "year": 1904,
+  "source": "Report of the Commission on Additional Water Supply for the City of New York (1904), p. 16",
+  "url": "https://archive.org/details/reportcommissio01burrgoog"
+ },
+ "roads_km": 14.6,
+ "rail_km": 0.8,
+ "roads": [
+  {
+   "name": "County Route 8",
+   "km": 2.1
+  },
+  {
+   "name": "Route 216",
+   "km": 1.9
+  },
+  {
+   "name": "Moonlight Dr",
+   "km": 1.1
+  },
+  {
+   "name": "County Route 9",
+   "km": 1.0
+  },
+  {
+   "name": "Seaman Rd",
+   "km": 0.9
+  },
+  {
+   "name": "Brothers Rd",
+   "km": 0.9
+  },
+  {
+   "name": "Recreation Rd",
+   "km": 0.6
+  },
+  {
+   "name": "Green Haven Rd",
+   "km": 0.5
+  },
+  {
+   "name": "Reynolds Rd",
+   "km": 0.5
+  },
+  {
+   "name": "Park Pl",
+   "km": 0.5
+  },
+  {
+   "name": "Sunny Ln",
+   "km": 0.5
+  },
+  {
+   "name": "Lime Ridge Rd",
+   "km": 0.4
+  },
+  {
+   "name": "Roger Ln",
+   "km": 0.3
+  },
+  {
+   "name": "Williams Dr",
+   "km": 0.3
+  },
+  {
+   "name": "County Route 7",
+   "km": 0.3
+  },
+  {
+   "name": "Circle Hill Rd",
+   "km": 0.3
+  },
+  {
+   "name": "Coombe Way",
+   "km": 0.2
+  },
+  {
+   "name": "Judith Dr",
+   "km": 0.2
+  },
+  {
+   "name": "Van Wyck Ct",
+   "km": 0.2
+  },
+  {
+   "name": "W Saw Mill Run",
+   "km": 0.2
+  },
+  {
+   "name": "Flagler Rd",
+   "km": 0.2
+  },
+  {
+   "name": "McGeeville Ct",
+   "km": 0.1
+  },
+  {
+   "name": "E Saw Mill Run",
+   "km": 0.1
+  },
+  {
+   "name": "Sylvan Lake Rd",
+   "km": 0.1
+  },
+  {
+   "name": "Orchard Dr",
+   "km": 0.1
+  },
+  {
+   "name": "Benton Moore Rd",
+   "km": 0.1
+  },
+  {
+   "name": "Mill Pond Ln",
+   "km": 0.1
+  }
+ ],
+ "roads_source": "USGS National Transportation Dataset (The National Map), 2026"
+}
